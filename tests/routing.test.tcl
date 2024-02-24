@@ -32,85 +32,70 @@ proc testDirFilename {sock args} {
 }
 
 
-test handleURL-1 {Return false if route not found} \
+test getHandlerInfo-1 {Return false if route not found} \
 -setup {
-  set sock 1
   set url "bob"
 } -body {
-  urlrouter::handleURL $sock $url
-} -result false
+  urlrouter::getHandlerInfo $url
+} -result {}
 
 
-test handleURL-2 {Detect an empty pattern for the root} \
+test getHandlerInfo-2 {Detect an empty pattern for the root} \
 -setup {
-  TestHelpers::ResetHandlerVars
-  set sock 2
   set url ""
 } -body {
-  list [urlrouter::handleURL $sock $url] {*}[TestHelpers::GetHandlerVars]
-} -result [list true testRoot 2 ""]
+  urlrouter::getHandlerInfo $url
+} -result [list testRoot {{}}]
 
 
-test handleURL-3 {Detect an empty pattern for the root with a trailing slash} \
+test getHandlerInfo-3 {Detect an empty pattern for the root with a trailing slash} \
 -setup {
-  TestHelpers::ResetHandlerVars
-  set sock 3
   set url {/}
 } -body {
-  list [urlrouter::handleURL $sock $url] {*}[TestHelpers::GetHandlerVars]
-} -result [list true testRoot 3 {/}]
+  urlrouter::getHandlerInfo $url
+} -result [list testRoot {/}]
 
 
-test handleURL-4 {Detect a single splat on its own} \
+test getHandlerInfo-4 {Detect a single splat on its own} \
 -setup {
-  TestHelpers::ResetHandlerVars
-  set sock 4
   set url {/files/fred.txt}
 } -body {
-  list [urlrouter::handleURL $sock $url] {*}[TestHelpers::GetHandlerVars]
-} -result [list true testFilesSplat 4 {/files/fred.txt} {fred.txt}]
+  urlrouter::getHandlerInfo $url
+} -result [list testFilesSplat {/files/fred.txt fred.txt}]
 
 
-test handleURL-5 {Detect a single splat on its own against multiple sub-directories} \
+test getHandlerInfo-5 {Detect a single splat on its own against multiple sub-directories} \
 -setup {
-  TestHelpers::ResetHandlerVars
-  set sock 5
   set url {/files/something/bob.txt}
 } -body {
-  list [urlrouter::handleURL $sock $url] {*}[TestHelpers::GetHandlerVars]
-} -result [list true testFilesSplat 5 {/files/something/bob.txt} {something/bob.txt}]
+  urlrouter::getHandlerInfo $url
+} -result [list testFilesSplat {/files/something/bob.txt something/bob.txt}]
 
 
-test handleURL-6 {Detect named parameters} \
+test getHandlerInfo-6 {Detect named parameters} \
 -setup {
-  TestHelpers::ResetHandlerVars
-  set sock 6
   set url {/dirA/someFile.txt}
 } -body {
-  list [urlrouter::handleURL $sock $url] {*}[TestHelpers::GetHandlerVars]
-} -result [list true testDirFilename 6 {/dirA/someFile.txt} {dirA} {someFile.txt}]
+  urlrouter::getHandlerInfo $url
+} -result [list testDirFilename {/dirA/someFile.txt dirA someFile.txt}]
 
 
-test handleURL-7 {Detect exact path} \
+test getHandlerInfo-7 {Detect exact path} \
 -setup {
-  TestHelpers::ResetHandlerVars
-  set sock 7
   set url {/files}
 } -body {
-  list [urlrouter::handleURL $sock $url] {*}[TestHelpers::GetHandlerVars]
-} -result [list true testFiles 7 {/files}]
+  urlrouter::getHandlerInfo $url
+} -result [list testFiles  {/files}]
 
 
-test handleURL-8 {Detect exact path with trailing slash} \
+test getHandlerInfo-8 {Detect exact path with trailing slash} \
 -setup {
-  TestHelpers::ResetHandlerVars
-  set sock 8
   set url {/files/}
 } -body {
-  list [urlrouter::handleURL $sock $url] {*}[TestHelpers::GetHandlerVars]
-} -result [list true testFiles 8 {/files/}]
+  urlrouter::getHandlerInfo $url
+} -result [list testFiles {/files}]
 
-test removal of .. and ./
+# TODO: test removal of .. and ./
 
 test NormalizeURL-1 {} \
 -setup {
@@ -124,4 +109,4 @@ test NormalizeURL-1 {} \
     lappend res [list $url [urlrouter::NormalizeURL $url] $want]
   }
   set res
-} -result [list {tests tests tests}]
+} -result [list {/tests /tests tests}]

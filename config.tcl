@@ -74,7 +74,15 @@ proc gophers::root {path} {
 
 
 # To run handleURL within the safe interpreter
+# TODO: report better errors incase handler returns and error
 proc gophers::handleURL {sock url} {
   variable interp
-  return [urlrouter::handleURL $interp $sock $url]
+  set handlerInfo [urlrouter::getHandlerInfo $url]
+  if {$handlerInfo ne {}} {
+    lassign $handlerInfo handlerName params
+    interp eval $interp [list $handlerName $sock {*}$params]
+    return true
+  } else {
+    return false
+  }
 }

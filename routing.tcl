@@ -26,19 +26,18 @@ proc urlrouter::route {pattern handlerName} {
 }
 
 
-proc urlrouter::handleURL {interp sock url} {
+# TODO: rename
+proc urlrouter::getHandlerInfo {url} {
   variable routes
   set url [NormalizeURL $url]
   foreach route $routes {
     lassign $route pattern regex keys handlerName
     set matches [regexp -all -inline -- $regex $url]
     if {$matches ne {}} {
-      # TODO: Find a cleaner way of doing this
-      $interp eval [list $handlerName $sock {*}$matches]
-      return true
+      return [list $handlerName $matches]
     }
   }
-  return false
+  return {}
 }
 
 
