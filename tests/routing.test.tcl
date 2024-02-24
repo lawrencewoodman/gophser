@@ -18,16 +18,16 @@ proc testRoot {sock url} {
   TestHelpers::SetHandlerVars [list testRoot $sock $url]
 }
 
-proc testFiles {sock args} { 
+proc testFiles {sock args} {
   TestHelpers::SetHandlerVars [list testFiles $sock {*}$args]
 }
 
 
-proc testFilesSplat {sock args} { 
+proc testFilesSplat {sock args} {
   TestHelpers::SetHandlerVars [list testFilesSplat $sock {*}$args]
 }
 
-proc testDirFilename {sock args} { 
+proc testDirFilename {sock args} {
   TestHelpers::SetHandlerVars [list testDirFilename $sock {*}$args]
 }
 
