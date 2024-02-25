@@ -45,7 +45,7 @@ test getHandlerInfo-2 {Detect an empty pattern for the root} \
   set url ""
 } -body {
   urlrouter::getHandlerInfo $url
-} -result [list testRoot {{}}]
+} -result [list testRoot {/}]
 
 
 test getHandlerInfo-3 {Detect an empty pattern for the root with a trailing slash} \
@@ -95,18 +95,24 @@ test getHandlerInfo-8 {Detect exact path with trailing slash} \
   urlrouter::getHandlerInfo $url
 } -result [list testFiles {/files}]
 
-# TODO: test removal of .. and ./
 
-test NormalizeURL-1 {} \
+test SafeURL-1 {} \
 -setup {
   set tests {
-    {/tests tests}
+    /tests
+    /fred/bob/dave
+    /fred/bob/..
+    /fred/bob/../..
+    /./gerald/.
+    /~fred
+    /.fred
   }
 } -body {
   set res {}
   foreach test $tests {
     lassign $test url want
-    lappend res [list $url [urlrouter::NormalizeURL $url] $want]
+    lappend res [urlrouter::SafeURL $url]
   }
   set res
-} -result [list {/tests /tests tests}]
+} -result [list /tests /fred/bob/dave /fred / /gerald /~fred \
+                /.fred]

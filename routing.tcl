@@ -29,7 +29,7 @@ proc urlrouter::route {pattern handlerName} {
 # TODO: rename
 proc urlrouter::getHandlerInfo {url} {
   variable routes
-  set url [NormalizeURL $url]
+  set url [SafeURL $url]
   foreach route $routes {
     lassign $route pattern regex keys handlerName
     set matches [regexp -all -inline -- $regex $url]
@@ -47,11 +47,24 @@ proc urlrouter::NewRoute {pattern} {
 }
 
 
-# Returns safe URL by resolving . and .. no further than the root of the given URL
-# TODO: Test thoroughly
-# TODO: Perhaps rename to show that it is making the url safe
-proc urlrouter::NormalizeURL {url} {
-  set url [file normalize [string trimleft $url "."]]
+# Returns a safe URL
+# Resolves .. without going past root of url
+# Removes . directory element
+# Supports directory elements beginning with ~
+proc urlrouter::SafeURL {url} {
+  set elements [file split $url]
+  set newURL [list]
+  foreach e $elements {
+    if {$e eq ".."} {
+      set newURL [lreplace $newURL end end]
+    } elseif {$e ne "." && $e ne "/"} {
+      if {[string match {./*} $e]} {
+        set e [string range $e 2 end]
+      }
+      lappend newURL $e
+    }
+  }
+  return "\/[join $newURL "/"]"
 }
 
 
@@ -61,7 +74,7 @@ proc urlrouter::PathToRegex {path} {
   set keys [regexp -all -inline -- "\{.*?\}" $path]
   set regex "^$path\/?$"
   # Escape / and . in path for regex
-  set regex [string map {"*" "(.*)" "/" "\\/" . "\\."} $regex]
+  set regex [string map {"*" "(.*)" "/" "\\/" "." "\\."} $regex]
   set regex [regsub -all "\{.*?\}" $regex {([^\\/]+)}]
   return [list $regex $keys]
 }
