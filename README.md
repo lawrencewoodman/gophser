@@ -1,5 +1,5 @@
-ornament
-========
+Gophers
+=======
 
 A [Gopher](https://en.wikipedia.org/wiki/Gopher_(protocol)) server written in Tcl
 
