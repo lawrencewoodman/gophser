@@ -39,6 +39,7 @@ proc gophers::clientConnect {sock host port} {
 
 
 # TODO: rename
+# TODO: Handle client sending too much data
 proc gophers::readLine {sock} {
   if {[catch {gets $sock line} len] || [eof $sock]} {
       catch {close $sock}
