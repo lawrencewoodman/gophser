@@ -52,11 +52,11 @@ proc gophers::mount {localDir urlPath} {
 }
 
 
-# To run handleURL within the safe interpreter
 # TODO: report better errors incase handler returns and error
-proc gophers::handleURL {sock url} {
+proc gophers::handleURL {sock urlPath} {
   variable interp
-  set handlerInfo [urlrouter::getHandlerInfo $url]
+  set urlPath [urlrouter::SafeURL $urlPath]
+  set handlerInfo [urlrouter::getHandlerInfo $urlPath]
   if {$handlerInfo ne {}} {
     lassign $handlerInfo handlerScript params
     {*}$handlerScript $sock {*}$params

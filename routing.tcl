@@ -28,6 +28,8 @@ proc urlrouter::route {pattern handlerName} {
 
 
 # TODO: rename
+# Assumes url is safe at this point
+# Perhaps use namespace to determine whether input has been checked
 proc urlrouter::getHandlerInfo {url} {
   variable routes
   set url [SafeURL $url]
