@@ -12,12 +12,8 @@ proc gophers::loadConfig {filename} {
   set interp [interp create -safe]
   $interp eval {unset {*}[info vars]}
 
-  $interp alias file gophers::safeFile
   $interp alias log gophers::log
-  $interp alias listDir gophers::listDir
   $interp alias mount gophers::mount
-  # TODO: Ensure this is wrapped so can only read world readable and with a specified path?
-  $interp alias readFile gophers::readFile
   $interp alias route gophers::safeRoute
   $interp alias sendText gophers::sendText
 
@@ -37,23 +33,6 @@ proc gophers::log {msg} {
 proc gophers::safeRoute {pattern handlerName} {
   variable interp
   urlrouter::route $pattern [list interp eval $interp [list $handlerName]]
-}
-
-
-proc gophers::safeFile {command args} {
-  # TODO: Consider how safe isfile and isdirectory is to be used and whether we should check first that it is world
-  # TODO: readable - also whether we should be using {*} before args
-  # TODO: Try and restrict this as much as possible
-  switch $command {
-    dirname { return [::file dirname {*}$args] }
-    isfile { return [::file isfile {*}$args] }
-    isdirectory { return [::file isdirectory {*}$args] }
-    join { return [::file join {*}$args] }
-    tail { return [::file tail {*}$args] }
-    default {
-      return -code error "invalid command for file: $command"
-    }
-  }
 }
 
 
