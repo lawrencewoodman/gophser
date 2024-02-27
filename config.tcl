@@ -48,11 +48,6 @@ proc gophers::mount {localDir urlPath} {
     error "local directory isn't a directory: $localDir"
   }
 
-  set localDirPermissions [file attributes $localDir -permissions]
-  if {$localDirPermissions & 4 != 4} {
-    error "local directory isn't world readable: $localDir"
-  }
-
   urlrouter::route $urlPath [list gophers::serveDir $localDir]
 }
 

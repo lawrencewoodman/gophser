@@ -79,6 +79,11 @@ proc gophers::sendText {sock msg} {
 proc gophers::serveDir {localDir sock urlPath args} {
   # TODO: Should we use file join args or safeURL for args?
   set path [file join $localDir [file join {*}$args]]
+  set pathPermissions [file attributes $path -permissions]
+  if {($pathPermissions & 4) != 4} {
+    error "local path isn't world readable: $path"
+  }
+
   # TODO: make path joining safe and check world readable
   if {[file isfile $path]} {
     sendText $sock [readFile $path]
