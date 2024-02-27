@@ -19,7 +19,7 @@ proc gophers::loadConfig {filename} {
   # TODO: Ensure this is wrapped so can only read world readable and with a specified path?
   $interp alias readFile gophers::readFile
   $interp alias route gophers::safeRoute
-  $interp alias sendMessage gophers::sendMessage
+  $interp alias sendText gophers::sendText
 
   $interp invokehidden source $filename
 

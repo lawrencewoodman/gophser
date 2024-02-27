@@ -45,7 +45,7 @@ proc gophers::readLine {sock} {
       catch {close $sock}
   } elseif {$len >= 0} {
       if {![gophers::handleURL $sock $line]} {
-        gophers::sendMessage $sock "3Error: file not found\tFAKE\t(NULL)\t0"
+        gophers::sendText $sock "3Error: file not found\tFAKE\t(NULL)\t0"
       }
       catch {close $sock}
   }
@@ -66,7 +66,7 @@ proc gophers::readFile {filename} {
 
 
 # TODO: Change to sendText and have another one for sendBinary?
-proc gophers::sendMessage {sock msg} {
+proc gophers::sendText {sock msg} {
   if {[catch {puts $sock $msg} error]} {
     puts stderr "Error writing to socket: $error"
     catch {close $sock}
@@ -81,7 +81,7 @@ proc gophers::serveDir {localDir sock urlPath args} {
   set path [file join $localDir [file join {*}$args]]
   # TODO: make path joining safe and check world readable
   if {[file isfile $path]} {
-    sendMessage $sock [readFile $path]
+    sendText $sock [readFile $path]
   } elseif {[file isdirectory $path]} {
     listDir $sock $localDir [file join {*}$args]
   }
@@ -100,9 +100,9 @@ proc gophers::listDir {sock localDir urlPath} {
     set selector [file join $urlPath $file]
     set nativeFile [file join $localDir $file]
     if {[file isfile $nativeFile]} {
-      sendMessage $sock "0$file\t/$selector\tlocalhost\t7070\n."
+      sendText $sock "0$file\t/$selector\tlocalhost\t7070\n."
     } elseif {[file isdirectory $nativeFile]} {
-      sendMessage $sock "1$file\t/$selector\tlocalhost\t7070\n."
+      sendText $sock "1$file\t/$selector\tlocalhost\t7070\n."
     }
   }
 }
