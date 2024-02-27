@@ -55,7 +55,7 @@ proc gophers::readLine {sock} {
 # TODO: Catch errors
 proc gophers::readFile {filename} {
   # TODO: put filename handling code into a separate function
-  set filename [string trimleft $filename "./"]
+  set filename [string trimleft $filename "."]
   set nativeFilename [file normalize $filename]
   set nativeFilename [file join $gophers::rootDir $nativeFilename]
   set fd [open $nativeFilename]
@@ -74,17 +74,31 @@ proc gophers::sendMessage {sock msg} {
 }
 
 
+# TODO: Rename
+# TODO: Do we need url?
+proc gophers::serveDir {localDir sock urlPath args} {
+  # TODO: Should we use file join args or safeURL for args?
+  set path [file join $localDir [file join {*}$args]]
+  # TODO: make path joining safe and check world readable
+  if {[file isfile $path]} {
+    sendMessage $sock [readFile $path]
+  } elseif {[file isdirectory $path]} {
+    listDir $sock $localDir [file join {*}$args]
+  }
+}
+
+
 # TODO: Make this safer and suitable for running as master command from interpreter
 # TODO: Restrict directories and look at permissions (world readable?)
-proc gophers::listDir {sock dir} {
-  set dir [string trimleft $dir "./"]
-  set nativeDir [file normalize $dir]
-  set nativeDir [file join $gophers::rootDir $nativeDir]
-  set files [glob -tails -directory $nativeDir *]
+proc gophers::listDir {sock localDir urlPath} {
+  set localDir [string trimleft $localDir "."]
+  set localDir [file normalize $localDir]
+  set localDir [file join $localDir $urlPath]
+  set files [glob -tails -directory $localDir *]
 
   foreach file $files {
-    set selector [file join $dir $file]
-    set nativeFile [file join $nativeDir $file]
+    set selector [file join $urlPath $file]
+    set nativeFile [file join $localDir $file]
     if {[file isfile $nativeFile]} {
       sendMessage $sock "0$file\t/$selector\tlocalhost\t7070\n."
     } elseif {[file isdirectory $nativeFile]} {

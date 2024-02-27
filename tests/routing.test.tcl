@@ -106,6 +106,7 @@ test SafeURL-1 {} \
     /./gerald/.
     /~fred
     /.fred
+    {}
   }
 } -body {
   set res {}
@@ -115,4 +116,4 @@ test SafeURL-1 {} \
   }
   set res
 } -result [list /tests /fred/bob/dave /fred / /gerald /~fred \
-                /.fred]
+                /.fred /]

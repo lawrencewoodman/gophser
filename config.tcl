@@ -15,32 +15,14 @@ proc gophers::loadConfig {filename} {
   $interp alias file gophers::safeFile
   $interp alias log gophers::log
   $interp alias listDir gophers::listDir
-  $interp alias root gophers::root
+  $interp alias mount gophers::mount
   # TODO: Ensure this is wrapped so can only read world readable and with a specified path?
   $interp alias readFile gophers::readFile
+  $interp alias route gophers::safeRoute
   $interp alias sendMessage gophers::sendMessage
-  $interp alias route urlrouter::route
 
   $interp invokehidden source $filename
 
-  # Later this may not be an issue but if it isn't set then need to
-  # restrict other functionality
-  if {$gophers::rootDir eq ""} {
-    error "root directory hasn't been set"
-  }
-
-  if {![file exists $gophers::rootDir]} {
-    error "root directory doesn't exist: $gophers::rootDir"
-  }
-
-  if {![file isdirectory $gophers::rootDir]} {
-    error "root directory isn't a directory: $gophers::rootDir"
-  }
-
-  set rootDirPermissions [file attributes $gophers::rootDir -permissions]
-  if {$rootDirPermissions & 4 != 4} {
-    error "root directory isn't world readable: $gophers::rootDir"
-  }
 }
 
 # TODO:need to define command so it is clear which are run as slave or master
@@ -51,9 +33,17 @@ proc gophers::log {msg} {
 }
 
 
+# TODO: make pattern safe
+proc gophers::safeRoute {pattern handlerName} {
+  variable interp
+  urlrouter::route $pattern [list interp eval $interp [list $handlerName]]
+}
+
+
 proc gophers::safeFile {command args} {
   # TODO: Consider how safe isfile and isdirectory is to be used and whether we should check first that it is world
   # TODO: readable - also whether we should be using {*} before args
+  # TODO: Try and restrict this as much as possible
   switch $command {
     dirname { return [::file dirname {*}$args] }
     isfile { return [::file isfile {*}$args] }
@@ -67,9 +57,24 @@ proc gophers::safeFile {command args} {
 }
 
 
-proc gophers::root {path} {
-  variable rootDir
-  set rootDir $path
+# TODO: Ensure localDir isn't relative
+proc gophers::mount {localDir urlPath} {
+  set urlPath "[urlrouter::SafeURL $urlPath]*"
+
+  if {![file exists $localDir]} {
+    error "local directory doesn't exist: $localDir"
+  }
+
+  if {![file isdirectory $localDir]} {
+    error "local directory isn't a directory: $localDir"
+  }
+
+  set localDirPermissions [file attributes $localDir -permissions]
+  if {$localDirPermissions & 4 != 4} {
+    error "local directory isn't world readable: $localDir"
+  }
+
+  urlrouter::route $urlPath [list gophers::serveDir $localDir]
 }
 
 
@@ -79,8 +84,8 @@ proc gophers::handleURL {sock url} {
   variable interp
   set handlerInfo [urlrouter::getHandlerInfo $url]
   if {$handlerInfo ne {}} {
-    lassign $handlerInfo handlerName params
-    interp eval $interp [list $handlerName $sock {*}$params]
+    lassign $handlerInfo handlerScript params
+    {*}$handlerScript $sock {*}$params
     return true
   } else {
     return false

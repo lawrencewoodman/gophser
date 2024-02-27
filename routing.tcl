@@ -18,7 +18,8 @@ namespace eval urlrouter {
   variable routes {}
 }
 
-# TOOD: Restrict pattern
+# TODO: Restrict pattern
+# TODO: Sort routes after adding from most specific to most general
 proc urlrouter::route {pattern handlerName} {
   variable routes
   set route [NewRoute $pattern]
@@ -31,6 +32,7 @@ proc urlrouter::getHandlerInfo {url} {
   variable routes
   set url [SafeURL $url]
   foreach route $routes {
+    # TODO: Rename handlerName?
     lassign $route pattern regex keys handlerName
     set matches [regexp -all -inline -- $regex $url]
     if {$matches ne {}} {
@@ -48,27 +50,29 @@ proc urlrouter::NewRoute {pattern} {
 
 
 # Returns a safe URL
+# TODO: Only allow absolute urlPaths
 # Resolves .. without going past root of url
 # Removes . directory element
 # Supports directory elements beginning with ~
-proc urlrouter::SafeURL {url} {
-  set elements [file split $url]
-  set newURL [list]
+proc urlrouter::SafeURL {urlPath} {
+  set elements [file split $urlPath]
+  set newURLPath [list]
   foreach e $elements {
     if {$e eq ".."} {
-      set newURL [lreplace $newURL end end]
+      set newURLPath [lreplace $newURLPath end end]
     } elseif {$e ne "." && $e ne "/"} {
       if {[string match {./*} $e]} {
         set e [string range $e 2 end]
       }
-      lappend newURL $e
+      lappend newURLPath $e
     }
   }
-  return "\/[join $newURL "/"]"
+  return "\/[join $newURLPath "/"]"
 }
 
 
 # TODO: Should * only be allowed at the end?
+# TODO: Test
 # Returns: {regex keys}
 proc urlrouter::PathToRegex {path} {
   set keys [regexp -all -inline -- "\{.*?\}" $path]
