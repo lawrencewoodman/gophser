@@ -1,11 +1,10 @@
-# A Gopher Server
+# Gopher Server Handling Code
 #
 # Copyright (C) 2024 Lawrence Woodman <https://lawrencewoodman.github.io/>
 #
 # Licensed under an MIT licence.  Please see LICENCE.md for details.
 #
 
-source "routing.tcl"
 
 namespace eval gophers {
   namespace export {[a-z]*}
@@ -15,8 +14,6 @@ namespace eval gophers {
   # TODO: Rename listen
   variable listen
 }
-
-source "config.tcl"
 
 proc gophers::init {} {
   variable listen
@@ -126,9 +123,3 @@ proc gophers::handleURL {sock urlPath} {
     return false
   }
 }
-
-
-gophers::init
-vwait forever
-
-gophers::shutdown
