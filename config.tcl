@@ -50,18 +50,3 @@ proc gophers::mount {localDir urlPath} {
 
   urlrouter::route $urlPath [list gophers::serveDir $localDir]
 }
-
-
-# TODO: report better errors incase handler returns and error
-proc gophers::handleURL {sock urlPath} {
-  variable interp
-  set urlPath [urlrouter::SafeURL $urlPath]
-  set handlerInfo [urlrouter::getHandlerInfo $urlPath]
-  if {$handlerInfo ne {}} {
-    lassign $handlerInfo handlerScript params
-    {*}$handlerScript $sock {*}$params
-    return true
-  } else {
-    return false
-  }
-}
