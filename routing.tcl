@@ -51,10 +51,13 @@ proc urlrouter::NewRoute {pattern} {
 
 # Returns a safe URL
 # TODO: Only allow absolute urlPaths
+# TODO: Convert tabs to % notation?
+# Convert spaces to % notation
 # Resolves .. without going past root of url
 # Removes . directory element
 # Supports directory elements beginning with ~
 proc urlrouter::SafeURL {urlPath} {
+  set urlPath [string map {" " "%20"} $urlPath]
   set elements [file split $urlPath]
   set newURLPath [list]
   foreach e $elements {
