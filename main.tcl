@@ -10,6 +10,14 @@ source "routing.tcl"
 source "gophers.tcl"
 source "config.tcl"
 
-gophers::init
-vwait forever
-gophers::shutdown
+proc main {params} {
+  if {[llength $params] != 1} {
+    error "must supply config filename"
+  }
+  set configFilename [lindex $params 0]
+  gophers::init $configFilename
+  vwait forever
+  gophers::shutdown
+}
+
+main $argv

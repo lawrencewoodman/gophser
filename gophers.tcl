@@ -15,9 +15,9 @@ namespace eval gophers {
   variable listen
 }
 
-proc gophers::init {} {
+proc gophers::init {configFilename} {
   variable listen
-  gophers::loadConfig "gopherhole.tcl"
+  gophers::loadConfig $configFilename
   # TODO: Add port to config that can't be changed once run
   set listen [socket -server gophers::clientConnect 7070]
 }
