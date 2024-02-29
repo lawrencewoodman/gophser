@@ -1,6 +1,5 @@
 package require tcltest
 namespace import tcltest::*
-
 set ThisScriptDir [file dirname [info script]]
 set RepoRootDir [file join $ThisScriptDir ..]
 
@@ -12,24 +11,6 @@ urlrouter::route "" testRoot
 urlrouter::route "/files" testFiles
 urlrouter::route "/files/*" testFilesSplat
 urlrouter::route "/{dir}/{filename}" testDirFilename
-
-
-proc testRoot {sock url} {
-  TestHelpers::SetHandlerVars [list testRoot $sock $url]
-}
-
-proc testFiles {sock args} {
-  TestHelpers::SetHandlerVars [list testFiles $sock {*}$args]
-}
-
-
-proc testFilesSplat {sock args} {
-  TestHelpers::SetHandlerVars [list testFilesSplat $sock {*}$args]
-}
-
-proc testDirFilename {sock args} {
-  TestHelpers::SetHandlerVars [list testDirFilename $sock {*}$args]
-}
 
 
 test getHandlerInfo-1 {Return false if route not found} \

@@ -1,20 +1,17 @@
 # Helper functions for the tests
 
 namespace eval TestHelpers {
-  variable handlerVars {}
+  variable getStoreData {}
 }
 
-proc TestHelpers::SetHandlerVars {vars} {
-  variable handlerVars
-  lappend handlerVars $vars
-}
 
-proc TestHelpers::GetHandlerVars {} {
-  variable handlerVars
-  return {*}$handlerVars
-}
-
-proc TestHelpers::ResetHandlerVars {} {
-  variable handlerVars
-  set handlerVars {}
+# TODO: Make more robust
+proc TestHelpers::gopherGet {port url} {
+  set host "localhost"
+  set s [socket $host $port]
+  fconfigure $s -buffering none
+  puts $s $url
+  set res [read $s]
+  catch {close $s}
+  return $res
 }

@@ -5,10 +5,7 @@
 # Licensed under an MIT licence.  Please see LICENCE.md for details.
 #
 
-
-source "routing.tcl"
 source "gophers.tcl"
-source "config.tcl"
 
 proc main {params} {
   if {[llength $params] != 1} {
