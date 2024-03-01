@@ -69,7 +69,7 @@ proc gophers::readFile {filename} {
 
 # TODO: Change to sendText and have another one for sendBinary?
 proc gophers::sendText {sock msg} {
-  if {[catch {puts $sock $msg} error]} {
+  if {[catch {puts -nonewline $sock $msg} error]} {
     puts stderr "Error writing to socket: $error"
     catch {close $sock}
   }
