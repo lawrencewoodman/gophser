@@ -18,6 +18,7 @@ namespace eval gophers {
 set RepoRootDir [file dirname [info script]]
 source [file join $RepoRootDir routing.tcl]
 source [file join $RepoRootDir config.tcl]
+source [file join $RepoRootDir menu.tcl]
 
 proc gophers::init {configFilename} {
   variable listen
@@ -101,17 +102,19 @@ proc gophers::listDir {sock localDir urlPath} {
   set localDir [file normalize $localDir]
   set localDir [file join $localDir $urlPath]
   set files [glob -tails -directory $localDir *]
+  set menu [menu create localhost 7070]
 
   foreach file $files {
-    set selector [file join $urlPath $file]
+    set selector "/[file join $urlPath $file]"
     set nativeFile [file join $localDir $file]
     if {[file isfile $nativeFile]} {
-      sendText $sock "0$file\t/$selector\tlocalhost\t7070"
+      menu addFile menu text $file $selector
     } elseif {[file isdirectory $nativeFile]} {
-      sendText $sock "1$file\t/$selector\tlocalhost\t7070"
+      menu addMenu menu $file $selector
     }
   }
   # TODO: send a . to mark end?
+  sendText $sock [menu render $menu]
 }
 
 
