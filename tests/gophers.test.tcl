@@ -8,7 +8,6 @@ set RepoRootDir [file join $ThisScriptDir ..]
 source [file join $RepoRootDir gophers.tcl]
 
 
-# TODO: Rename main
 test init-1 {Check can read menu from server} \
 -setup {
   # Create Gopher server
@@ -28,7 +27,7 @@ test init-1 {Check can read menu from server} \
     vwait ThisScriptDir
     source [file join $ThisScriptDir test_helpers.tcl]
     vwait urlPath
-    set gopherData [TestHelpers::gopherGet 7070 $urlPath]
+    set gopherData [TestHelpers::gopherGet localhost 7070 $urlPath]
     thread::wait
   }]
 

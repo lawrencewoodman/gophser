@@ -6,8 +6,7 @@ namespace eval TestHelpers {
 
 
 # TODO: Make more robust
-proc TestHelpers::gopherGet {port url} {
-  set host "localhost"
+proc TestHelpers::gopherGet {host port url} {
   set s [socket $host $port]
   fconfigure $s -buffering none
   puts $s $url
