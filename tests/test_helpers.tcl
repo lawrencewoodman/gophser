@@ -1,4 +1,5 @@
 # Helper functions for the tests
+package require Thread
 
 namespace eval TestHelpers {
   variable getStoreData {}
@@ -6,10 +7,10 @@ namespace eval TestHelpers {
 
 
 # TODO: Make more robust
-proc TestHelpers::gopherGet {host port url} {
+proc TestHelpers::gopherGet {host port selector} {
   set s [socket $host $port]
   fconfigure $s -buffering none
-  puts $s $url
+  puts $s $selector
   set res [read $s]
   catch {close $s}
   return $res
@@ -17,8 +18,7 @@ proc TestHelpers::gopherGet {host port url} {
 
 
 proc TestHelpers::startServer {configContent} {
-  set thisScriptDir [file dirname [info script]]
-  set repoRootDir [file join $thisScriptDir ..]
+  global RepoRootDir
   set t [thread::create -joinable {
     vwait configContent
     vwait repoRootDir
@@ -30,9 +30,10 @@ proc TestHelpers::startServer {configContent} {
     vwait isRunning
     vwait forever
     gophers::shutdown
+    # TODO: Delete the configFile
   }]
   thread::send -async $t [list set configContent $configContent]
-  thread::send -async $t [list set repoRootDir $repoRootDir]
+  thread::send -async $t [list set repoRootDir $RepoRootDir]
   thread::send $t [list set isRunning 1]
   return $t
 }

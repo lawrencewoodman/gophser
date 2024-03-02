@@ -1,4 +1,4 @@
-# Routes to Define and Handle URL Routes
+# Define routes and route selectors to handlers
 #
 # Copyright (C) 2024 Lawrence Woodman <https://lawrencewoodman.github.io/>
 #
@@ -11,16 +11,14 @@
 
 
 # TODO: Think about name format and rename file?
-namespace eval urlrouter {
+namespace eval router {
   namespace export {[a-z]*}
-  namespace ensemble create
-  # The normal number of safe interpreters ready for use
   variable routes {}
 }
 
 # TODO: Restrict pattern
 # TODO: Sort routes after adding from most specific to most general
-proc urlrouter::route {pattern handlerName} {
+proc router::route {pattern handlerName} {
   variable routes
   set route [NewRoute $pattern]
   lappend routes [list {*}$route $handlerName]
@@ -28,15 +26,15 @@ proc urlrouter::route {pattern handlerName} {
 
 
 # TODO: rename
-# Assumes url is safe at this point
+# TODO: Assumes selector is safe at this point?
 # Perhaps use namespace to determine whether input has been checked
-proc urlrouter::getHandlerInfo {url} {
+proc router::getHandlerInfo {selector} {
   variable routes
-  set url [SafeURL $url]
+  set selector [safeSelector $selector]
   foreach route $routes {
     # TODO: Rename handlerName?
     lassign $route pattern regex keys handlerName
-    set matches [regexp -all -inline -- $regex $url]
+    set matches [regexp -all -inline -- $regex $selector]
     if {$matches ne {}} {
       return [list $handlerName $matches]
     }
@@ -45,41 +43,43 @@ proc urlrouter::getHandlerInfo {url} {
 }
 
 
-proc urlrouter::NewRoute {pattern} {
+# Returns a safer version of the selector path
+# TODO: Only allow absolute paths
+# TODO: Convert tabs to % notation?
+# Convert spaces to % notation
+# Resolves .. without going past root of path
+# Removes . directory element
+# Supports directory elements beginning with ~
+proc router::safeSelector {selectorPath} {
+  set selectorPath [string map {" " "%20"} $selectorPath]
+  set elements [file split $selectorPath]
+  set newSelectorPath [list]
+  foreach e $elements {
+    if {$e eq ".."} {
+      set newSelectorPath [lreplace $newSelectorPath end end]
+    } elseif {$e ne "." && $e ne "/"} {
+      if {[string match {./*} $e]} {
+        set e [string range $e 2 end]
+      }
+      lappend newSelectorPath $e
+    }
+  }
+  return "\/[join $newSelectorPath "/"]"
+}
+
+
+proc router::NewRoute {pattern} {
   lassign [PathToRegex $pattern] regex keys
   return [list $pattern $regex $keys]
 }
 
 
-# Returns a safe URL
-# TODO: Only allow absolute urlPaths
-# TODO: Convert tabs to % notation?
-# Convert spaces to % notation
-# Resolves .. without going past root of url
-# Removes . directory element
-# Supports directory elements beginning with ~
-proc urlrouter::SafeURL {urlPath} {
-  set urlPath [string map {" " "%20"} $urlPath]
-  set elements [file split $urlPath]
-  set newURLPath [list]
-  foreach e $elements {
-    if {$e eq ".."} {
-      set newURLPath [lreplace $newURLPath end end]
-    } elseif {$e ne "." && $e ne "/"} {
-      if {[string match {./*} $e]} {
-        set e [string range $e 2 end]
-      }
-      lappend newURLPath $e
-    }
-  }
-  return "\/[join $newURLPath "/"]"
-}
 
 
 # TODO: Should * only be allowed at the end?
 # TODO: Test
 # Returns: {regex keys}
-proc urlrouter::PathToRegex {path} {
+proc router::PathToRegex {path} {
   set keys [regexp -all -inline -- "\{.*?\}" $path]
   set regex "^$path\/?$"
   # Escape / and . in path for regex

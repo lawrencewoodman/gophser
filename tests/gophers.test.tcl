@@ -1,4 +1,3 @@
-package require Thread
 package require tcltest
 namespace import tcltest::*
 
@@ -19,6 +18,6 @@ test init-1 {Check can read menu from server} \
   TestHelpers::shutdownServer $serverThread
 } -result [list {} \
                 "0gophers.test.tcl\t/tests/gophers.test.tcl\tlocalhost\t7070" \
-                "0routing.test.tcl\t/tests/routing.test.tcl\tlocalhost\t7070" \
+                "0router.test.tcl\t/tests/router.test.tcl\tlocalhost\t7070" \
                 "0test_helpers.tcl\t/tests/test_helpers.tcl\tlocalhost\t7070" \
                 "1stress\t/tests/stress\tlocalhost\t7070"]

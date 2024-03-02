@@ -32,13 +32,13 @@ proc gophers::log {msg} {
 # TODO: make pattern safe
 proc gophers::safeRoute {pattern handlerName} {
   variable interp
-  urlrouter::route $pattern [list interp eval $interp [list $handlerName]]
+  router::route $pattern [list interp eval $interp [list $handlerName]]
 }
 
 
 # TODO: Ensure localDir isn't relative
-proc gophers::mount {localDir urlPath} {
-  set urlPath "[urlrouter::SafeURL $urlPath]*"
+proc gophers::mount {localDir selectorPath} {
+  set selectorPath "[router::safeSelector $selectorPath]*"
 
   if {![file exists $localDir]} {
     error "local directory doesn't exist: $localDir"
@@ -48,5 +48,5 @@ proc gophers::mount {localDir urlPath} {
     error "local directory isn't a directory: $localDir"
   }
 
-  urlrouter::route $urlPath [list gophers::serveDir $localDir]
+  router::route $selectorPath [list gophers::serveDir $localDir]
 }
