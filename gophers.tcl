@@ -13,6 +13,7 @@ namespace eval gophers {
   variable rootDir {}
   # TODO: Rename listen
   variable listen
+  variable configOptions
 }
 
 set RepoRootDir [file dirname [info script]]
@@ -22,7 +23,8 @@ source [file join $RepoRootDir menu.tcl]
 
 proc gophers::init {configFilename} {
   variable listen
-  gophers::loadConfig $configFilename
+  variable configOptions
+  set configOptions [config::load $configFilename]
   # TODO: Add port to config that can't be changed once run
   set listen [socket -server gophers::clientConnect 7070]
 }
@@ -34,9 +36,12 @@ proc gophers::shutdown {} {
 
 
 proc gophers::clientConnect {sock host port} {
+  variable configOptions
   chan configure $sock -buffering line -blocking 0
   chan event $sock readable [list gophers::readSelector $sock]
-  puts "Connection from $host:$port"
+  if {[dict get $configOptions logger suppress] ne "all"} {
+    puts "Connection from $host:$port"
+  }
 }
 
 
