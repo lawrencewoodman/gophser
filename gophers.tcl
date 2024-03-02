@@ -35,14 +35,13 @@ proc gophers::shutdown {} {
 
 proc gophers::clientConnect {sock host port} {
   chan configure $sock -buffering line -blocking 0
-  chan event $sock readable [list gophers::readLine $sock]
+  chan event $sock readable [list gophers::readSelector $sock]
   puts "Connection from $host:$port"
 }
 
 
-# TODO: rename
 # TODO: Handle client sending too much data
-proc gophers::readLine {sock} {
+proc gophers::readSelector {sock} {
   if {[catch {gets $sock line} len] || [eof $sock]} {
       catch {close $sock}
   } elseif {$len >= 0} {
@@ -52,6 +51,23 @@ proc gophers::readLine {sock} {
       catch {close $sock}
   }
 }
+
+
+# TODO: report better errors in case handler returns an error
+proc gophers::handleSelector {sock selector} {
+  variable interp
+  set selector [router::safeSelector $selector]
+  set handlerInfo [router::getHandlerInfo $selector]
+  if {$handlerInfo ne {}} {
+    lassign $handlerInfo handlerScript params
+    # TODO: Better safer way of doing this?
+    {*}$handlerScript $sock {*}$params
+    return true
+  } else {
+    return false
+  }
+}
+
 
 # TODO: Be careful file isn't too big and reduce transmission rate if big and under heavy load
 # TODO: Catch errors
@@ -115,19 +131,4 @@ proc gophers::listDir {sock localDir selectorPath} {
   }
   # TODO: send a . to mark end?
   sendText $sock [menu render $menu]
-}
-
-
-# TODO: report better errors incase handler returns and error
-proc gophers::handleSelector {sock selector} {
-  variable interp
-  set selector [router::safeSelector $selector]
-  set handlerInfo [router::getHandlerInfo $selector]
-  if {$handlerInfo ne {}} {
-    lassign $handlerInfo handlerScript params
-    {*}$handlerScript $sock {*}$params
-    return true
-  } else {
-    return false
-  }
 }

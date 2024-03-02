@@ -74,8 +74,6 @@ proc router::NewRoute {pattern} {
 }
 
 
-
-
 # TODO: Should * only be allowed at the end?
 # TODO: Test
 # Returns: {regex keys}

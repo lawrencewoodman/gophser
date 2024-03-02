@@ -18,7 +18,6 @@ proc gophers::loadConfig {filename} {
   $interp alias sendText gophers::sendText
 
   $interp invokehidden source $filename
-
 }
 
 # TODO:need to define command so it is clear which are run as slave or master
