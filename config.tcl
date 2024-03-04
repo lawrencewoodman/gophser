@@ -36,7 +36,12 @@ proc config::load {filename} {
 # TODO: Consider basing off log tcllib package
 proc config::log {command args} {
   variable options
-  switch $command {
+  # TODO: Think about what to use for reporting (info?)
+  # TODO: Pay attention to suppress in info
+  switch -- $command {
+    info {
+      puts [lindex $args 0]
+    }
     suppress {
       # TODO: Improve error handling
       dict set options logger suppress [lindex $args 0]
@@ -51,7 +56,13 @@ proc config::log {command args} {
 # TODO: make pattern safe
 proc config::route {pattern handlerName} {
   variable interp
-  router::route $pattern [list interp eval $interp [list $handlerName]]
+  # TODO: make numRoutes cleaner
+  set numRoutes [llength $router::routes]
+  proc ::config::handleRoute$numRoutes {interp handlerName selector args} {
+    set res [interp eval $interp [list $handlerName] $selector $args]
+    return [list text $res]
+  }
+  router::route $pattern [list ::config::handleRoute$numRoutes $interp $handlerName]
 }
 
 

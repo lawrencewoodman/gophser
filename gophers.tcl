@@ -66,7 +66,15 @@ proc gophers::handleSelector {sock selector} {
   if {$handlerInfo ne {}} {
     lassign $handlerInfo handlerScript params
     # TODO: Better safer way of doing this?
-    {*}$handlerScript $sock {*}$params
+    lassign [{*}$handlerScript {*}$params] type value
+    switch -- $type {
+      text {
+        sendText $sock $value
+      }
+      default {
+        error "unknown type: $type"
+      }
+    }
     return true
   } else {
     return false
@@ -88,7 +96,7 @@ proc gophers::readFile {filename} {
 }
 
 
-# TODO: Change to sendText and have another one for sendBinary?
+# TODO: Have another one for sendBinary?
 proc gophers::sendText {sock msg} {
   if {[catch {puts -nonewline $sock $msg} error]} {
     puts stderr "Error writing to socket: $error"
@@ -99,7 +107,7 @@ proc gophers::sendText {sock msg} {
 
 # TODO: Rename
 # TODO: Do we need selectorPath?
-proc gophers::serveDir {localDir sock selectorPath args} {
+proc gophers::serveDir {localDir selectorPath args} {
   # TODO: Should we use file join args or safeSelector for args?
   set path [file join $localDir [file join {*}$args]]
   set pathPermissions [file attributes $path -permissions]
@@ -109,16 +117,17 @@ proc gophers::serveDir {localDir sock selectorPath args} {
 
   # TODO: make path joining safe and check world readable
   if {[file isfile $path]} {
-    sendText $sock [readFile $path]
+    return [list text [readFile $path]]
   } elseif {[file isdirectory $path]} {
-    listDir $sock $localDir [file join {*}$args]
+    return [list text [listDir $localDir [file join {*}$args]]]
   }
+  error "TODO: what is this?"
 }
 
 
 # TODO: Make this safer and suitable for running as master command from interpreter
 # TODO: Restrict directories and look at permissions (world readable?)
-proc gophers::listDir {sock localDir selectorPath} {
+proc gophers::listDir {localDir selectorPath} {
   set localDir [string trimleft $localDir "."]
   set localDir [file normalize $localDir]
   set localDir [file join $localDir $selectorPath]
@@ -135,5 +144,5 @@ proc gophers::listDir {sock localDir selectorPath} {
     }
   }
   # TODO: send a . to mark end?
-  sendText $sock [menu render $menu]
+  menu render $menu
 }

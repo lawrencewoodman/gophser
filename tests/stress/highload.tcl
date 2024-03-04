@@ -30,10 +30,16 @@ proc outputStats {selectors timings} {
 
 set configContent [join [list \
   "log suppress all" \
+  "route \"/bigfile\" sendBigFile" \
   "route \"/say/{word}\" sendWord" \
   "mount \"[file normalize $RepoRootDir]\" \"/\"" \
-  "proc sendWord {sock selector args} {" \
-  "  sendText \$sock \[string map {\"%20\" \" \"} \$args\]" \
+  "proc sendWord {selector args} {" \
+  "  string map {\"%20\" \" \"} \$args" \
+  "}" \
+  "proc sendBigFile {selector args} {" \
+  "  for {set i 0} {\$i < 9999} {incr i} {" \
+  "    sendText \$sock {abcdefghijklmnopqrstuvwxyz0123}" \
+  "  }" \
   "}"] "\n"]
 
 set selectors {"/tests/" "/say/hello"}
