@@ -3,19 +3,33 @@ set RepoRootDir [file join $ThisScriptDir .. ..]
 source [file join $ThisScriptDir .. test_helpers.tcl]
 
 
-proc stressServer {selectors} {
-  set timings {}
+proc stressServer {numConnections selectors} {
   foreach selector $selectors {
-    lappend timings [time {TestHelpers::gopherGet localhost 7070 $selector} 50000]
+    set elapsed [time {
+      for {set i 0} {$i < $numConnections} {incr i} {
+        TestHelpers::gopherGet localhost 7070 $selector
+      }
+    }]
+    set ms [scan $elapsed {%f microseconds per iteration}]
+    outputStat $selector [expr {$ms / $numConnections}]
   }
-  return $timings
 }
+
+
+proc stressServerSwarm {numConnections selectors} {
+  foreach selector $selectors {
+    set threads [TestHelpers::gopherGetSwarmInit $numConnections]
+    set elapsed [time {TestHelpers::gopherGetSwarmRun $threads localhost 7070 $selector}]
+    set ms [scan $elapsed {%f microseconds per iteration}]
+    outputStat $selector [expr {$ms / $numConnections}]
+  }
+}
+
+
 
 proc outputStat {name elapsed} {
   set msPerConnection [scan $elapsed {%f microseconds per iteration}]
-  set msTotal [expr {$msPerConnection * 50000}]
-  set secTotal [expr {$msTotal / 1000000}]
-  set connectionsPerSec [expr {50000 / $secTotal}]
+  set connectionsPerSec [expr {1000000 / $elapsed}]
 
   puts "$name:"
   puts "   ms / connection: $msPerConnection"
@@ -37,15 +51,26 @@ set configContent [join [list \
   "  string map {\"%20\" \" \"} \$args" \
   "}" \
   "proc sendBigFile {selector args} {" \
+  "  set str {}" \
   "  for {set i 0} {\$i < 9999} {incr i} {" \
-  "    sendText \$sock {abcdefghijklmnopqrstuvwxyz0123}" \
+  "    append str {abcdefghijklmnopqrstuvwxyz0123}" \
   "  }" \
+  "  return \$str" \
   "}"] "\n"]
 
-set selectors {"/tests/" "/say/hello"}
+#set selectors {"/tests/" "/say/hello" "/bigfile"}
+#set selectors {"/tests/"}
+#set selectors {"/say/hello"}
+set selectors {"/bigfile" "/say/hello" "/tests/test_helpers.tcl" "/tests/"}
+#set selectors {"/bigfile"}
 set serverThread [TestHelpers::startServer $configContent]
-set timings [stressServer $selectors]
-TestHelpers::shutdownServer $serverThread
 
-outputStats $selectors $timings
+puts "Consecutive Connections"
+puts "=======================\n"
+set timings [stressServer 800 $selectors]
+
+puts "Simultaneous Connections"
+puts "========================\n"
+set timings [stressServerSwarm 800 $selectors]
+TestHelpers::shutdownServer $serverThread
 

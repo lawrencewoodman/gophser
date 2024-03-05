@@ -4,3 +4,6 @@
 
 * Allow caching option for mount and cache refresh frequency
 * Try using coroutines for server to serve multiple connections - benchmark - also maybe only resort to if load high
+* Be able to rate limit ip addresses and display their details on a page
+  so that people can check
+* Record the number of connections using [dict size sendMsgs]

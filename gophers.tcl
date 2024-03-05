@@ -5,7 +5,6 @@
 # Licensed under an MIT licence.  Please see LICENCE.md for details.
 #
 
-
 namespace eval gophers {
   namespace export {[a-z]*}
   namespace ensemble create
@@ -14,6 +13,8 @@ namespace eval gophers {
   # TODO: Rename listen
   variable listen
   variable configOptions
+  variable sendMsgs [dict create]
+  variable sendPos [dict creat]
 }
 
 set RepoRootDir [file dirname [info script]]
@@ -52,8 +53,8 @@ proc gophers::readSelector {sock} {
   } elseif {$len >= 0} {
       if {![gophers::handleSelector $sock $line]} {
         gophers::sendText $sock "3Error: file not found\tFAKE\t(NULL)\t0"
+        catch {close $sock}
       }
-      catch {close $sock}
   }
 }
 
@@ -96,12 +97,41 @@ proc gophers::readFile {filename} {
 }
 
 
-# TODO: Have another one for sendBinary?
-proc gophers::sendText {sock msg} {
-  if {[catch {puts -nonewline $sock $msg} error]} {
+# To be called by writable event to send text when sock is writable
+# This will break the text into 10k chunks to help if we have multiple
+# slow connections.
+proc gophers::sendTextWhenWritable {sock} {
+  variable sendMsgs
+  variable sendPos
+
+  set msg [dict get $sendMsgs $sock]
+  set pos [dict get $sendPos $sock]
+  set str [string range $msg $pos $pos+10000]
+  incr pos 10001
+
+  if {[string length $str] == 0} {
+    dict unset sendMsgs $sock
+    catch {close $sock}
+    return
+  }
+  dict set sendPos $sock $pos
+
+  if {[catch {puts -nonewline $sock $str} error]} {
     puts stderr "Error writing to socket: $error"
     catch {close $sock}
   }
+}
+
+
+# TODO: Have another one for sendBinary?
+proc gophers::sendText {sock msg} {
+  variable sendMsgs
+  variable sendPos
+
+  # TODO: Make sendMsgs a list so can send multiple messages?
+  dict set sendMsgs $sock $msg
+  dict set sendPos $sock 0
+  chan event $sock writable [list ::gophers::sendTextWhenWritable $sock]
 }
 
 
