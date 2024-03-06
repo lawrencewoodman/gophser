@@ -18,13 +18,14 @@ proc stressServer {numConnections selectors} {
 
 proc stressServerSwarm {numConnections selectors} {
   foreach selector $selectors {
-    set threads [TestHelpers::gopherGetSwarmInit $numConnections]
-    set elapsed [time {TestHelpers::gopherGetSwarmRun $threads localhost 7070 $selector}]
+    set elapsed [time {
+      TestHelpers::gopherSwarmGet $numConnections localhost 7070 $selector
+    }]
+    TestHelpers::gopherSwarmGetVerifyResults
     set ms [scan $elapsed {%f microseconds per iteration}]
     outputStat $selector [expr {$ms / $numConnections}]
   }
 }
-
 
 
 proc outputStat {name elapsed} {
@@ -58,7 +59,6 @@ set configContent [join [list \
   "  return \$str" \
   "}"] "\n"]
 
-#set selectors {"/tests/" "/say/hello" "/bigfile"}
 #set selectors {"/tests/"}
 #set selectors {"/say/hello"}
 set selectors {"/bigfile" "/say/hello" "/tests/test_helpers.tcl" "/tests/"}

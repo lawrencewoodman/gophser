@@ -3,6 +3,9 @@ package require Thread
 
 namespace eval TestHelpers {
   variable getStoreData {}
+  variable swarmSocks [list]
+  variable swarmDone false
+  variable swarmResults
 }
 
 proc TestHelpers::gopherGet {host port selector} {
@@ -15,37 +18,74 @@ proc TestHelpers::gopherGet {host port selector} {
 }
 
 
-proc TestHelpers::gopherGetSwarmInit {num} {
-  set threads {}
+proc TestHelpers::gopherSwarmGet {num host port selector} {
+  variable swarmSocks
+  variable swarmDone
+  variable swarmLastRead
+  variable swarmResults
+  variable swarmSelector
+  set swarmSocks [list]
+  set swarmDone false
+  set swarmLastRead [clock milliseconds]
+  set swarmResults [dict create]
+  set swarmSelector $selector
+
   for {set i 0} {$i < $num} {incr i} {
-    set t [thread::create -joinable {
-      vwait urlParts
-      lassign $urlParts host port selector
-      if {[catch {set s [socket $host $port]}]} {
-        puts stderr "$::errorInfo: $host:$port"
-        exit 1
-      }
-      fconfigure $s -buffering none
-      puts $s $selector
-      set res [read $s]
-      catch {close $s}
-      thread::wait
-    }]
-    lappend threads $t
+    if {[catch {set sock [socket $host $port]}]} {
+      puts stderr "$::errorInfo: $host:$port"
+      exit 1
+    }
+    lappend swarmSocks $sock
+    chan configure $sock -buffering line -blocking 0
+    puts $sock $selector
+    chan event $sock readable [list TestHelpers::gopherSwarmGetReader $sock]
   }
-  return $threads
+  after 5 TestHelpers::gopherSwarmGetReadMonitor
+  vwait TestHelpers::swarmDone
 }
 
 
-proc TestHelpers::gopherGetSwarmRun {threads host port selector} {
-  foreach t $threads {
-    thread::send -async $t [list set urlParts [list $host $port $selector]]
-    thread::send -async $t [list set res] ::res
+proc TestHelpers::gopherSwarmGetReader {sock} {
+  variable swarmLastRead
+  variable swarmResults
+  if {[catch {read $sock} res] || [eof $sock]} {
+      catch {close $sock}
   }
-  foreach t $threads {
-    vwait ::res
+  dict append swarmResults $sock $res
+  set swarmLastRead [clock milliseconds]
+}
+
+
+proc TestHelpers::gopherSwarmGetReadMonitor {} {
+  variable swarmLastRead
+  variable swarmSocks
+  # If > 10 milliseconds since anything was last read, close all and finish
+  if {[clock milliseconds]-$swarmLastRead > 10} {
+    foreach sock $swarmSocks {
+      catch {close $sock}
+    }
+    set TestHelpers::swarmDone true
+  } else {
+    after 5 TestHelpers::gopherSwarmGetReadMonitor
   }
 }
+
+
+proc TestHelpers::gopherSwarmGetVerifyResults {} {
+  variable swarmResults
+  variable swarmSocks
+  variable swarmSelector
+  if {[llength $swarmSocks] != [dict size $swarmResults]} {
+    error "number of results != number of connections"
+  }
+  set wantResult [TestHelpers::gopherGet localhost 7070 $swarmSelector]
+  dict for {- res} $swarmResults {
+    if {$res ne $wantResult} {
+      error "unexpected result:\n got:$res\n want: $wantResult"
+    }
+  }
+}
+
 
 proc TestHelpers::startServer {configContent} {
   global RepoRootDir
@@ -60,7 +100,7 @@ proc TestHelpers::startServer {configContent} {
     vwait isRunning
     vwait forever
     gophers::shutdown
-    # TODO: Delete the configFile
+    file delete $tmpConfigFilename
   }]
   thread::send -async $t [list set configContent $configContent]
   thread::send -async $t [list set repoRootDir $RepoRootDir]
