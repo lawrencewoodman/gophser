@@ -10,7 +10,7 @@ namespace eval TestHelpers {
 
 proc TestHelpers::gopherGet {host port selector} {
     set s [socket $host $port]
-    fconfigure $s -buffering none
+    fconfigure $s -buffering none -translation binary
     puts $s $selector
     set res [read $s]
     catch {close $s}
@@ -36,7 +36,7 @@ proc TestHelpers::gopherSwarmGet {num host port selector} {
       exit 1
     }
     lappend swarmSocks $sock
-    chan configure $sock -buffering line -blocking 0
+    chan configure $sock -buffering line -blocking 0 -translation binary
     puts $sock $selector
     chan event $sock readable [list TestHelpers::gopherSwarmGetReader $sock]
   }
@@ -51,6 +51,7 @@ proc TestHelpers::gopherSwarmGetReader {sock} {
   if {[catch {read $sock} res] || [eof $sock]} {
       catch {close $sock}
   }
+
   dict append swarmResults $sock $res
   set swarmLastRead [clock milliseconds]
 }

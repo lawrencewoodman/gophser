@@ -38,7 +38,7 @@ proc gophers::shutdown {} {
 
 proc gophers::clientConnect {sock host port} {
   variable configOptions
-  chan configure $sock -buffering line -blocking 0
+  chan configure $sock -buffering line -blocking 0 -translation {auto binary}
   chan event $sock readable [list gophers::readSelector $sock]
   if {[dict get $configOptions logger suppress] ne "all"} {
     puts "Connection from $host:$port"
@@ -48,10 +48,10 @@ proc gophers::clientConnect {sock host port} {
 
 # TODO: Handle client sending too much data
 proc gophers::readSelector {sock} {
-  if {[catch {gets $sock line} len] || [eof $sock]} {
+  if {[catch {gets $sock selector} len] || [eof $sock]} {
       catch {close $sock}
   } elseif {$len >= 0} {
-      if {![gophers::handleSelector $sock $line]} {
+      if {![gophers::handleSelector $sock $selector]} {
         gophers::sendText $sock "3Error: file not found\tFAKE\t(NULL)\t0"
         catch {close $sock}
       }
@@ -162,6 +162,7 @@ proc gophers::listDir {localDir selectorPath} {
   set localDir [file normalize $localDir]
   set localDir [file join $localDir $selectorPath]
   set files [glob -tails -directory $localDir *]
+  set files [lsort $files]
   set menu [menu create localhost 7070]
 
   foreach file $files {

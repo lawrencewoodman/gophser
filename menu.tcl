@@ -56,8 +56,9 @@ proc gophers::menu::render {menuVal} {
   set menuStr ""
   foreach item [dict get $menuVal menu] {
     lassign $item type displayString selector hostname port
-    set itemStr "$type$displayString\t$selector\t$hostname\t$port\n"
+    set itemStr "$type$displayString\t$selector\t$hostname\t$port\r\n"
     append menuStr $itemStr
   }
+  append menuStr ".\r\n"
   return $menuStr
 }
