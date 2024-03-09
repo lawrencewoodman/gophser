@@ -18,7 +18,36 @@ proc gophers::menu::create {{defaultHost localhost} {defaultPort 70} } {
 }
 
 
-proc gophers::menu::addFile {menuVar itemType displayString selector {hostname {}} {port {}}} {
+proc gophers::menu::addFile {menuVar itemType userName selector {hostname {}} {port {}}} {
+  upvar $menuVar menuVal
+  if {$itemType ni {0 text}} {
+    # TODO: Have this as a warning only?
+    error "unknown file item type: $itemType"
+  }
+  AddItem menuVal $itemType $userName $selector $hostname $port
+}
+
+
+proc gophers::menu::addMenu {menuVar userName selector {hostname {}} {port {}}} {
+  upvar $menuVar menuVal
+  AddItem menuVal menu $userName $selector $hostname $port
+}
+
+
+# Render the menu as text ready for sending
+proc gophers::menu::render {menuVal} {
+  set menuStr ""
+  foreach item [dict get $menuVal menu] {
+    lassign $item type userName selector hostname port
+    set itemStr "$type$userName\t$selector\t$hostname\t$port\r\n"
+    append menuStr $itemStr
+  }
+  append menuStr ".\r\n"
+  return $menuStr
+}
+
+
+proc gophers::menu::AddItem {menuVar itemType userName selector {hostname {}} {port {}}} {
   upvar $menuVar menuVal
   if {$hostname eq {}} {
     set hostname [dict get $menuVal defaults hostname]
@@ -30,35 +59,12 @@ proc gophers::menu::addFile {menuVar itemType displayString selector {hostname {
   switch -- $itemType {
     text -
     0 {set itemType 0}
+    menu -
+    1 {set itemType 1}
     default {
       # TODO: Have this as a warning only?
       error "unknown item type: $itemType"
     }
   }
-  dict lappend menuVal menu [list $itemType $displayString $selector $hostname $port]
-}
-
-
-proc gophers::menu::addMenu {menuVar displayString selector {hostname {}} {port {}}} {
-  upvar $menuVar menuVal
-  if {$hostname eq {}} {
-    set hostname [dict get $menuVal defaults hostname]
-  }
-  if {$port eq {}} {
-    set port [dict get $menuVal defaults port]
-  }
-  dict lappend menuVal menu [list 1 $displayString $selector $hostname $port]
-}
-
-
-# Render the menu as text ready for sending
-proc gophers::menu::render {menuVal} {
-  set menuStr ""
-  foreach item [dict get $menuVal menu] {
-    lassign $item type displayString selector hostname port
-    set itemStr "$type$displayString\t$selector\t$hostname\t$port\r\n"
-    append menuStr $itemStr
-  }
-  append menuStr ".\r\n"
-  return $menuStr
+  dict lappend menuVal menu [list $itemType $userName $selector $hostname $port]
 }

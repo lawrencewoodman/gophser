@@ -12,3 +12,4 @@
   - Which could include whether their are user definable functions being called
   - Whether directories within /home are mounted
   - Whether tcl gopher server is within mounted directories and has safe permissions
+* Warn if userName in menu items is > 70 character or contains non-printable characters
