@@ -13,3 +13,4 @@
   - Whether directories within /home are mounted
   - Whether tcl gopher server is within mounted directories and has safe permissions
 * Warn if userName in menu items is > 70 character or contains non-printable characters
+* Warn if selector string is > 255 characters
