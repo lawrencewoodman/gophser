@@ -97,3 +97,5 @@ test safeSelector-1 {} \
   set res
 } -result [list /tests /fred/bob/dave /fred / /gerald /~fred \
                 /.fred /]
+
+cleanupTests

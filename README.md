@@ -14,7 +14,7 @@ Testing
 -------
 There is a testsuite in `tests/`.  To run it:
 
-    $ tclsh tests/*.test.tcl
+    $ tclsh tests/all.tcl
 
 
 Licence

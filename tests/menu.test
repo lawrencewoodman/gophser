@@ -17,3 +17,5 @@ test render-1 {Check render adds correct .<cr><lf> ending to menu} \
 } -result [string cat \
   "1Somewhere interesting\t/interesting\tlocalhost\t70\r\n" \
   ".\r\n"]
+
+cleanupTests

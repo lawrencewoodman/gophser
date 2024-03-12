@@ -15,16 +15,20 @@ source [file join $ThisScriptDir test_helpers.tcl]
 
 test init-1 {Check can read menu from server} \
 -setup {
-  set configContent "mount \"[file normalize $RepoRootDir]\" \"/\""
+  set configContent "log suppress all
+  mount \"[file normalize $RepoRootDir]\" \"/\""
   set serverThread [TestHelpers::startServer $configContent]
 } -body {
   TestHelpers::gopherGet localhost 7070 "/tests/"
 } -cleanup {
   TestHelpers::shutdownServer $serverThread]
 } -result [string cat \
-  "0gophers.test.tcl\t/tests/gophers.test.tcl\tlocalhost\t7070\r\n" \
-  "0menu.test.tcl\t/tests/menu.test.tcl\tlocalhost\t7070\r\n" \
-  "0router.test.tcl\t/tests/router.test.tcl\tlocalhost\t7070\r\n" \
+  "0all.tcl\t/tests/all.tcl\tlocalhost\t7070\r\n" \
+  "0gophers.test\t/tests/gophers.test\tlocalhost\t7070\r\n" \
+  "0menu.test\t/tests/menu.test\tlocalhost\t7070\r\n" \
+  "0router.test\t/tests/router.test\tlocalhost\t7070\r\n" \
   "1stress\t/tests/stress\tlocalhost\t7070\r\n" \
   "0test_helpers.tcl\t/tests/test_helpers.tcl\tlocalhost\t7070\r\n" \
   ".\r\n"]
+
+cleanupTests
