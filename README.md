@@ -3,6 +3,8 @@ Gophers
 
 A [Gopher](https://en.wikipedia.org/wiki/Gopher_(protocol)) server written in Tcl
 
+Conforms to [RFC 1436 - The Internet Gopher Protocol](https://datatracker.ietf.org/doc/html/rfc1436).
+
 Requirements
 ------------
 *  Tcl 8.6+
