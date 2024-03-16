@@ -15,6 +15,12 @@ namespace eval gophers {
   variable configOptions
   variable sendMsgs [dict create]
   variable sendPos [dict creat]
+  # TODO: improve statuses
+  # Status of a send:
+  #  waiting: waiting for something to send
+  #  ready:   something is ready to send
+  #  done:    nothing left to send, close
+  variable sendStatus [dict create]
 }
 
 set RepoRootDir [file dirname [info script]]
@@ -39,8 +45,11 @@ proc gophers::shutdown {} {
 
 proc gophers::clientConnect {sock host port} {
   variable configOptions
+  variable sendStatus
   chan configure $sock -buffering line -blocking 0 -translation {auto binary}
+  dict set sendStatus $sock "waiting"
   chan event $sock readable [list gophers::readSelector $sock]
+  chan event $sock writable [list ::gophers::sendTextWhenWritable $sock]
   if {[dict get $configOptions logger suppress] ne "all"} {
     puts "Connection from $host:$port"
   }
@@ -49,13 +58,18 @@ proc gophers::clientConnect {sock host port} {
 
 # TODO: Handle client sending too much data
 proc gophers::readSelector {sock} {
+  variable sendStatus
   if {[catch {gets $sock selector} len] || [eof $sock]} {
       catch {close $sock}
   } elseif {$len >= 0} {
-      if {![gophers::handleSelector $sock $selector]} {
-        gophers::sendText $sock "3Error: file not found\tFAKE\t(NULL)\t0"
-        catch {close $sock}
-      }
+    if {![gophers::handleSelector $sock $selector]} {
+      gophers::sendText $sock "3Error: file not found\tFAKE\t(NULL)\t0"
+      # TODO: Close send variables for sock
+      catch {close $sock}
+    }
+    dict set sendStatus $sock "done"
+    # TODO: set routine to tidy up sendDones, etc that have been around for
+    # TODO: a while
   }
 }
 
@@ -104,16 +118,26 @@ proc gophers::readFile {filename} {
 proc gophers::sendTextWhenWritable {sock} {
   variable sendMsgs
   variable sendPos
-
+  variable sendStatus
+  if {[dict get $sendStatus $sock] eq "waiting"} {
+    return
+  }
+  
   set msg [dict get $sendMsgs $sock]
   set pos [dict get $sendPos $sock]
   set str [string range $msg $pos $pos+10000]
   incr pos 10001
 
   if {[string length $str] == 0} {
-    dict unset sendMsgs $sock
-    catch {close $sock}
-    return
+    if {[dict get $sendStatus $sock] eq "done"} {
+      dict unset sendMsgs $sock
+      dict unset sendPos $sock
+      dict unset sendStatus $sock
+      catch {close $sock}
+      return
+    } else {
+      dict set sendStatus $sock "waiting"
+    }
   }
   dict set sendPos $sock $pos
 
@@ -128,11 +152,12 @@ proc gophers::sendTextWhenWritable {sock} {
 proc gophers::sendText {sock msg} {
   variable sendMsgs
   variable sendPos
+  variable sendStatus
 
   # TODO: Make sendMsgs a list so can send multiple messages?
   dict set sendMsgs $sock $msg
   dict set sendPos $sock 0
-  chan event $sock writable [list ::gophers::sendTextWhenWritable $sock]
+  dict set sendStatus $sock ready
 }
 
 
