@@ -14,7 +14,6 @@ namespace eval gophers {
   variable listen
   variable configOptions
   variable sendMsgs [dict create]
-  variable sendPos [dict creat]
   # TODO: improve statuses
   # Status of a send:
   #  waiting: waiting for something to send
@@ -117,21 +116,15 @@ proc gophers::readFile {filename} {
 # slow connections.
 proc gophers::sendTextWhenWritable {sock} {
   variable sendMsgs
-  variable sendPos
   variable sendStatus
   if {[dict get $sendStatus $sock] eq "waiting"} {
     return
   }
   
   set msg [dict get $sendMsgs $sock]
-  set pos [dict get $sendPos $sock]
-  set str [string range $msg $pos $pos+10000]
-  incr pos 10001
-
-  if {[string length $str] == 0} {
+  if {[string length $msg] == 0} {
     if {[dict get $sendStatus $sock] eq "done"} {
       dict unset sendMsgs $sock
-      dict unset sendPos $sock
       dict unset sendStatus $sock
       catch {close $sock}
       return
@@ -139,7 +132,9 @@ proc gophers::sendTextWhenWritable {sock} {
       dict set sendStatus $sock "waiting"
     }
   }
-  dict set sendPos $sock $pos
+
+  set str [string range $msg 0 10000]
+  dict set sendMsgs $sock [string range $msg 10001 end]
 
   if {[catch {puts -nonewline $sock $str} error]} {
     puts stderr "Error writing to socket: $error"
@@ -151,12 +146,10 @@ proc gophers::sendTextWhenWritable {sock} {
 # TODO: Have another one for sendBinary?
 proc gophers::sendText {sock msg} {
   variable sendMsgs
-  variable sendPos
   variable sendStatus
 
   # TODO: Make sendMsgs a list so can send multiple messages?
   dict set sendMsgs $sock $msg
-  dict set sendPos $sock 0
   dict set sendStatus $sock ready
 }
 
