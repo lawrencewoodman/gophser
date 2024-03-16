@@ -21,6 +21,7 @@ set RepoRootDir [file dirname [info script]]
 source [file join $RepoRootDir router.tcl]
 source [file join $RepoRootDir config.tcl]
 source [file join $RepoRootDir menu.tcl]
+source [file join $RepoRootDir gophermap.tcl]
 
 proc gophers::init {configFilename} {
   variable listen
@@ -147,33 +148,75 @@ proc gophers::serveDir {localDir selectorPath args} {
 
   # TODO: make path joining safe and check world readable
   if {[file isfile $path]} {
+    # TODO: Don't allow gophermap to be downloaded
     return [list text [readFile $path]]
   } elseif {[file isdirectory $path]} {
-    return [list text [listDir $localDir [file join {*}$args]]]
+    set menu [menu create localhost 7070]
+    listDir menu $localDir [file join {*}$args]
+    return [list text [menu render $menu]]
   }
   error "TODO: what is this?"
 }
 
 
+
+# listDir ?switches? menuVar localDir selectorPath
+# switches:
+#  -nogophermap      Don't process any gophermaps found
+#  -files files      Pass a list of filenames rather than glob them
+#
+# TODO: Rename -files to -filenames?
 # TODO: Make this safer and suitable for running as master command from interpreter
 # TODO: Restrict directories and look at permissions (world readable?)
-proc gophers::listDir {localDir selectorPath} {
-  set localDir [string trimleft $localDir "."]
-  set localDir [file normalize $localDir]
-  set localDir [file join $localDir $selectorPath]
-  set files [glob -tails -directory $localDir *]
-  set files [lsort $files]
-  set menu [menu create localhost 7070]
+proc gophers::listDir {args} {
 
-  foreach file $files {
-    set selector "/[file join $selectorPath $file]"
-    set nativeFile [file join $localDir $file]
-    if {[file isfile $nativeFile]} {
-      menu addFile menu text $file $selector
-    } elseif {[file isdirectory $nativeFile]} {
-      menu addMenu menu $file $selector
+  array set options {}
+  while {[llength $args]} {
+    switch -glob -- [lindex $args 0] {
+      -nogophermap {set args [lassign $args options(nogophermap)]}
+      -files {set args [lassign $args - options(files)]}
+      --      {set args [lrange $args 1 end] ; break}
+      -*      {return -code error "listDir: unknown option: [lindex $args 0]"}
+      default break
     }
   }
-  # TODO: send a . to mark end?
-  menu render $menu
+  if {[llength $args] != 3} {
+    return -code error "listDir: invalid number of arguments"
+  }
+  lassign $args menuVar localDir selectorPath
+  upvar $menuVar menuVal
+
+
+  set localDir [string trimleft $localDir "."]
+  set localDir [file normalize $localDir]
+  set selectorLocalDir [file join $localDir $selectorPath]
+  if {[info exists options(files)]} {
+    set files $options(files)
+  } else {
+    set files [glob -tails -directory $selectorLocalDir *]
+    set files [lsort $files]
+  }
+
+  # TODO: Rename gophermap
+  if {![info exists options(nogophermap)] &&
+       [file exists [file join $selectorLocalDir gophermap]]} {
+    # TODO: Handle exceptions
+    gophermap::process menuVal $files $localDir $selectorPath
+    return
+  }
+
+  # List the directory without using a gophermap if not present or it fails
+  foreach file $files {
+    if {$file eq "gophermap"} {
+      # Don't display the gophermap
+      continue
+    }
+    set selector "/[file join $selectorPath $file]"
+    set nativeFile [file join $selectorLocalDir $file]
+    if {[file isfile $nativeFile]} {
+      menu addFile menuVal text $file $selector
+    } elseif {[file isdirectory $nativeFile]} {
+      menu addMenu menuVal $file $selector
+    }
+  }
 }

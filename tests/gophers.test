@@ -13,7 +13,7 @@ source [file join $ThisScriptDir test_helpers.tcl]
 
 
 
-test init-1 {Check can read menu from server} \
+test init-1 {Check can read menu from server when no gophermap} \
 -setup {
   set configContent "log suppress all
   mount \"[file normalize $RepoRootDir]\" \"/\""
@@ -24,11 +24,30 @@ test init-1 {Check can read menu from server} \
   TestHelpers::shutdownServer $serverThread]
 } -result [string cat \
   "0all.tcl\t/tests/all.tcl\tlocalhost\t7070\r\n" \
+  "1fixtures\t/tests/fixtures\tlocalhost\t7070\r\n" \
   "0gophers.test\t/tests/gophers.test\tlocalhost\t7070\r\n" \
   "0menu.test\t/tests/menu.test\tlocalhost\t7070\r\n" \
   "0router.test\t/tests/router.test\tlocalhost\t7070\r\n" \
   "1stress\t/tests/stress\tlocalhost\t7070\r\n" \
   "0test_helpers.tcl\t/tests/test_helpers.tcl\tlocalhost\t7070\r\n" \
+  ".\r\n"]
+
+
+test init-2 {Check gophermap is processed in a directory} \
+-setup {
+  set configContent "log suppress all
+  mount \"[file normalize $RepoRootDir]\" \"/\""
+  set serverThread [TestHelpers::startServer $configContent]
+} -body {
+  TestHelpers::gopherGet localhost 7070 "/tests/fixtures/"
+} -cleanup {
+  TestHelpers::shutdownServer $serverThread]
+} -result [string cat \
+  "0README.md - find all about this directory\tREADME.md\tlocalhost\t7070\r\n" \
+  "0README.md\t/tests/fixtures/README.md\tlocalhost\t7070\r\n" \
+  "0docs.txt\t/tests/fixtures/docs.txt\tlocalhost\t7070\r\n" \
+  "0hello.txt\t/tests/fixtures/hello.txt\tlocalhost\t7070\r\n" \
+  "0hi.txt\t/tests/fixtures/hi.txt\tlocalhost\t7070\r\n" \
   ".\r\n"]
 
 cleanupTests

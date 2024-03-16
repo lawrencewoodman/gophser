@@ -18,6 +18,7 @@ proc gophers::menu::create {{defaultHost localhost} {defaultPort 70} } {
 }
 
 
+# TODO: Remove addFile and addMenu and just use item
 proc gophers::menu::addFile {menuVar itemType userName selector {hostname {}} {port {}}} {
   upvar $menuVar menuVal
   if {$itemType ni {0 text}} {
@@ -46,7 +47,7 @@ proc gophers::menu::render {menuVal} {
   return $menuStr
 }
 
-
+# TODO: rename to item
 proc gophers::menu::AddItem {menuVar itemType userName selector {hostname {}} {port {}}} {
   upvar $menuVar menuVal
   if {$hostname eq {}} {

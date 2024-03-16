@@ -14,3 +14,8 @@
   - Whether tcl gopher server is within mounted directories and has safe permissions
 * Warn if userName in menu items is > 70 character or contains non-printable characters
 * Warn if selector string is > 255 characters
+* Finalize name used for gophermap files in directories - perhaps use menu in name
+* Use exit [runAllTests] ??
+* Support a search engine
+* Don't serve the gophermap
+* Support getting files using gopher

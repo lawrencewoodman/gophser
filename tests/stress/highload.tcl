@@ -61,7 +61,10 @@ set configContent [join [list \
 
 #set selectors {"/tests/"}
 #set selectors {"/say/hello"}
-set selectors {"/bigfile" "/say/hello" "/tests/test_helpers.tcl" "/tests/"}
+set selectors {
+  "/bigfile" "/say/hello" "/tests/test_helpers.tcl" "/tests/"
+  "/tests/fixtures/"
+}
 #set selectors {"/bigfile"}
 set serverThread [TestHelpers::startServer $configContent]
 
