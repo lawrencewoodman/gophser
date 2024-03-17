@@ -232,9 +232,9 @@ proc gophers::listDir {args} {
     set selector "/[file join $selectorPath $file]"
     set nativeFile [file join $selectorLocalDir $file]
     if {[file isfile $nativeFile]} {
-      menu addFile menuVal text $file $selector
+      menu item menuVal text $file $selector
     } elseif {[file isdirectory $nativeFile]} {
-      menu addMenu menuVal $file $selector
+      menu item menuVal menu $file $selector
     }
   }
 }

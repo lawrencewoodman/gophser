@@ -11,7 +11,7 @@ source [file join $ThisScriptDir test_helpers.tcl]
 test render-1 {Check render adds correct .<cr><lf> ending to menu} \
 -setup {
   set m [gophers::menu create]
-  gophers::menu addMenu m "Somewhere interesting" "/interesting"
+  gophers::menu item m menu "Somewhere interesting" "/interesting"
 } -body {
   gophers::menu render $m
 } -result [string cat \

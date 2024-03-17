@@ -45,7 +45,7 @@ proc gophermap::Menu {command args} {
   switch -- $command {
     item {
       # TODO: ensure can only include files in the current location?
-      ::gophers::menu::AddItem menu {*}$args
+      ::gophers::menu::item menu {*}$args
     }
     default {
       return -code error "menu: invalid command: $command"
