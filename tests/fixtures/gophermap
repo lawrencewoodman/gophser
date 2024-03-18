@@ -1,4 +1,11 @@
 
+describe hello.txt {This is a description of hi.txt
+it is generated using the describe command and this demonstrates how it
+will wrap the text}
+
+describe docs.txt {Did you know that there is some interesting information
+in some documentation}
+
 menu item text "README.md - find all about this directory" README.md
 
 listFiles

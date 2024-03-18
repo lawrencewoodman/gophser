@@ -18,4 +18,38 @@ test render-1 {Check render adds correct .<cr><lf> ending to menu} \
   "1Somewhere interesting\t/interesting\tlocalhost\t70\r\n" \
   ".\r\n"]
 
+
+test info-1 {Check info wraps text} \
+-setup {
+  set m [gophers::menu create]
+  gophers::menu info m {
+    This is some interesting text that you might like to ready about if you have the time to look at it but the main
+    point is that it is there to see
+    if the text wrapping works properly
+  }
+} -body {
+  gophers::menu render $m
+} -result [string cat \
+  "iThis is some interesting text that you might like to ready about if you have the\tFAKE\tlocalhost\t70\r\n" \
+  "itime to look at it but the main point is that it is there to see if the text\tFAKE\tlocalhost\t70\r\n" \
+  "iwrapping works properly\tFAKE\tlocalhost\t70\r\n" \
+  ".\r\n"]
+
+
+test item-1 {Check item handles info item type the same as info command} \
+-setup {
+  set m1 [gophers::menu create]
+  set m2 [gophers::menu create]
+  set text {
+    This is some interesting text that you might like to ready about if you have the time to look at it but the main
+    point is that it is there to see
+    if the text wrapping works properly
+  }
+  gophers::menu info m1 $text
+  gophers::menu item m2 info $text FAKE
+} -body {
+  string equal [gophers::menu render $m1] [gophers::menu render $m2]
+} -result 1
+
+
 cleanupTests

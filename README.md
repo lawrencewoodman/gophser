@@ -7,7 +7,8 @@ Conforms to [RFC 1436 - The Internet Gopher Protocol](https://datatracker.ietf.o
 
 Requirements
 ------------
-*  Tcl 8.6+
+* Tcl 8.6+
+* Tcllib
 
 
 Testing

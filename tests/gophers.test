@@ -45,8 +45,14 @@ test init-2 {Check gophermap is processed in a directory} \
 } -result [string cat \
   "0README.md - find all about this directory\tREADME.md\tlocalhost\t7070\r\n" \
   "0README.md\t/tests/fixtures/README.md\tlocalhost\t7070\r\n" \
+  "i\tFAKE\tlocalhost\t7070\r\n" \
   "0docs.txt\t/tests/fixtures/docs.txt\tlocalhost\t7070\r\n" \
+  "iDid you know that there is some interesting information in some documentation\tFAKE\tlocalhost\t7070\r\n" \
+  "i\tFAKE\tlocalhost\t7070\r\n" \
   "0hello.txt\t/tests/fixtures/hello.txt\tlocalhost\t7070\r\n" \
+  "iThis is a description of hi.txt it is generated using the describe command and\tFAKE\tlocalhost\t7070\r\n" \
+  "ithis demonstrates how it will wrap the text\tFAKE\tlocalhost\t7070\r\n" \
+  "i\tFAKE\tlocalhost\t7070\r\n" \
   "0hi.txt\t/tests/fixtures/hi.txt\tlocalhost\t7070\r\n" \
   ".\r\n"]
 

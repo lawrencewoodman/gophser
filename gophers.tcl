@@ -193,6 +193,7 @@ proc gophers::listDir {args} {
     switch -glob -- [lindex $args 0] {
       -nogophermap {set args [lassign $args options(nogophermap)]}
       -files {set args [lassign $args - options(files)]}
+      -descriptions {set args [lassign $args - options(descriptions)]}
       --      {set args [lrange $args 1 end] ; break}
       -*      {return -code error "listDir: unknown option: [lindex $args 0]"}
       default break
@@ -223,18 +224,40 @@ proc gophers::listDir {args} {
     return
   }
 
+  if {[info exists options(descriptions)]} {
+    set descriptions $options(descriptions)
+  } else {
+    set descriptions [dict create]
+  }
+
   # List the directory without using a gophermap if not present or it fails
+  set prevFileDescribed false   ; # This prevents a double proceeding new line
   foreach file $files {
     if {$file eq "gophermap"} {
       # Don't display the gophermap
       continue
     }
+
+    # If a description exists then put a blank line before file
+    if {!$prevFileDescribed && [dict exists $descriptions $file]} {
+      menu info menuVal ""
+      set prevFileDescribed true
+    } else {
+      set prevFileDescribed false
+    }
+
     set selector "/[file join $selectorPath $file]"
     set nativeFile [file join $selectorLocalDir $file]
     if {[file isfile $nativeFile]} {
       menu item menuVal text $file $selector
     } elseif {[file isdirectory $nativeFile]} {
       menu item menuVal menu $file $selector
+    }
+
+    # If a description exists then put it after the file
+    if {[dict exists $descriptions $file]} {
+      menu info menuVal [dict get $descriptions $file]
+      menu info menuVal ""
     }
   }
 }
