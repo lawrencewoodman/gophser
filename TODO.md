@@ -2,7 +2,6 @@
 
 * Create a better name for the project
 
-* Allow caching option for mount and cache refresh frequency
 * Try using coroutines for server to serve multiple connections - benchmark - also maybe only resort to if load high
 * Be able to rate limit ip addresses and display their details on a page
   so that people can check
@@ -19,3 +18,4 @@
 * Support a search engine
 * Don't serve the gophermap
 * Support getting files using gopher
+* Add an option to gophermap, not to cache

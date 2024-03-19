@@ -26,6 +26,7 @@ set RepoRootDir [file dirname [info script]]
 source [file join $RepoRootDir router.tcl]
 source [file join $RepoRootDir config.tcl]
 source [file join $RepoRootDir menu.tcl]
+source [file join $RepoRootDir cache.tcl]
 source [file join $RepoRootDir gophermap.tcl]
 
 proc gophers::init {configFilename} {
@@ -169,9 +170,14 @@ proc gophers::serveDir {localDir selectorPath args} {
     # TODO: Don't allow gophermap to be downloaded
     return [list text [readFile $path]]
   } elseif {[file isdirectory $path]} {
-    set menu [menu create localhost 7070]
-    set menu [listDir $menu $localDir [file join {*}$args]]
-    return [list text [menu render $menu]]
+    lassign [gophers::cache get $selectorPath] inCache menuText
+    if {!$inCache} {
+      set menu [menu create localhost 7070]
+      set menu [listDir $menu $localDir [file join {*}$args]]
+      set menuText [menu render $menu]
+      gophers::cache put $selectorPath $menuText
+    }
+    return [list text $menuText]
   }
   error "TODO: what is this?"
 }
