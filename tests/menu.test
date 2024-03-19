@@ -11,7 +11,7 @@ source [file join $ThisScriptDir test_helpers.tcl]
 test render-1 {Check render adds correct .<cr><lf> ending to menu} \
 -setup {
   set m [gophers::menu create]
-  gophers::menu item m menu "Somewhere interesting" "/interesting"
+  set m [gophers::menu item $m menu "Somewhere interesting" "/interesting"]
 } -body {
   gophers::menu render $m
 } -result [string cat \
@@ -22,11 +22,11 @@ test render-1 {Check render adds correct .<cr><lf> ending to menu} \
 test info-1 {Check info wraps text} \
 -setup {
   set m [gophers::menu create]
-  gophers::menu info m {
+  set m [gophers::menu info $m {
     This is some interesting text that you might like to ready about if you have the time to look at it but the main
     point is that it is there to see
     if the text wrapping works properly
-  }
+  }]
 } -body {
   gophers::menu render $m
 } -result [string cat \
@@ -45,8 +45,8 @@ test item-1 {Check item handles info item type the same as info command} \
     point is that it is there to see
     if the text wrapping works properly
   }
-  gophers::menu info m1 $text
-  gophers::menu item m2 info $text FAKE
+  set m1 [gophers::menu info $m1 $text]
+  set m2 [gophers::menu item $m2 info $text FAKE]
 } -body {
   string equal [gophers::menu render $m1] [gophers::menu render $m2]
 } -result 1

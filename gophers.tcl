@@ -170,7 +170,7 @@ proc gophers::serveDir {localDir selectorPath args} {
     return [list text [readFile $path]]
   } elseif {[file isdirectory $path]} {
     set menu [menu create localhost 7070]
-    listDir menu $localDir [file join {*}$args]
+    set menu [listDir $menu $localDir [file join {*}$args]]
     return [list text [menu render $menu]]
   }
   error "TODO: what is this?"
@@ -178,7 +178,7 @@ proc gophers::serveDir {localDir selectorPath args} {
 
 
 
-# listDir ?switches? menuVar localDir selectorPath
+# listDir ?switches? menu localDir selectorPath
 # switches:
 #  -nogophermap      Don't process any gophermaps found
 #  -files files      Pass a list of filenames rather than glob them
@@ -187,7 +187,6 @@ proc gophers::serveDir {localDir selectorPath args} {
 # TODO: Make this safer and suitable for running as master command from interpreter
 # TODO: Restrict directories and look at permissions (world readable?)
 proc gophers::listDir {args} {
-
   array set options {}
   while {[llength $args]} {
     switch -glob -- [lindex $args 0] {
@@ -202,9 +201,7 @@ proc gophers::listDir {args} {
   if {[llength $args] != 3} {
     return -code error "listDir: invalid number of arguments"
   }
-  lassign $args menuVar localDir selectorPath
-  upvar $menuVar menuVal
-
+  lassign $args menu localDir selectorPath
 
   set localDir [string trimleft $localDir "."]
   set localDir [file normalize $localDir]
@@ -220,8 +217,7 @@ proc gophers::listDir {args} {
   if {![info exists options(nogophermap)] &&
        [file exists [file join $selectorLocalDir gophermap]]} {
     # TODO: Handle exceptions
-    gophermap::process menuVal $files $localDir $selectorPath
-    return
+    return [gophermap::process $menu $files $localDir $selectorPath]
   }
 
   if {[info exists options(descriptions)]} {
@@ -240,7 +236,7 @@ proc gophers::listDir {args} {
 
     # If a description exists then put a blank line before file
     if {!$prevFileDescribed && [dict exists $descriptions $file]} {
-      menu info menuVal ""
+      set menu [menu info $menu ""]
       set prevFileDescribed true
     } else {
       set prevFileDescribed false
@@ -249,15 +245,16 @@ proc gophers::listDir {args} {
     set selector "/[file join $selectorPath $file]"
     set nativeFile [file join $selectorLocalDir $file]
     if {[file isfile $nativeFile]} {
-      menu item menuVal text $file $selector
+      set menu [menu item $menu text $file $selector]
     } elseif {[file isdirectory $nativeFile]} {
-      menu item menuVal menu $file $selector
+      set menu [menu item $menu menu $file $selector]
     }
 
     # If a description exists then put it after the file
     if {[dict exists $descriptions $file]} {
-      menu info menuVal [dict get $descriptions $file]
-      menu info menuVal ""
+      set menu [menu info $menu [dict get $descriptions $file]]
+      set menu [menu info $menu ""]
     }
   }
+  return $menu
 }

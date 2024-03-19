@@ -21,20 +21,19 @@ proc gophers::menu::create {{defaultHost localhost} {defaultPort 70} } {
 # Add information text
 # The text will be wrapped if the line length exceeds 80 characters
 # TODO: Work out what length to set this to wrap
-proc gophers::menu::info {menuVar text} {
-  upvar $menuVar menuVal
-  item menuVal info $text FAKE
+proc gophers::menu::info {menu text} {
+  item $menu info $text FAKE
 }
 
 
 # Add an item to the menu
-proc gophers::menu::item {menuVar itemType userName selector {hostname {}} {port {}}} {
-  upvar $menuVar menuVal
+# Returns a menu with the item added
+proc gophers::menu::item {menu itemType userName selector {hostname {}} {port {}}} {
   if {$hostname eq {}} {
-    set hostname [dict get $menuVal defaults hostname]
+    set hostname [dict get $menu defaults hostname]
   }
   if {$port eq {}} {
-    set port [dict get $menuVal defaults port]
+    set port [dict get $menu defaults port]
   }
 
   switch -- $itemType {
@@ -56,23 +55,24 @@ proc gophers::menu::item {menuVar itemType userName selector {hostname {}} {port
     # TODO: newlines to be used in source text
     set text [::textutil::adjust $userName -length 80]
     if {$text eq ""} {
-      dict lappend menuVal menu [list $itemType "" $selector $hostname $port]
+      dict lappend menu menu [list $itemType "" $selector $hostname $port]
     }
     foreach t [split $text "\n"] {
       # TODO: Work out what's best to put as the selector in this case
       # TODO: Work out what to put as host and port
-      dict lappend menuVal menu [list $itemType $t $selector $hostname $port]
+      dict lappend menu menu [list $itemType $t $selector $hostname $port]
     }
   } else {
-    dict lappend menuVal menu [list $itemType $userName $selector $hostname $port]
+    dict lappend menu menu [list $itemType $userName $selector $hostname $port]
   }
+  return $menu
 }
 
 
 # Render the menu as text ready for sending
-proc gophers::menu::render {menuVal} {
+proc gophers::menu::render {menu} {
   set menuStr ""
-  foreach item [dict get $menuVal menu] {
+  foreach item [dict get $menu menu] {
     lassign $item type userName selector hostname port
     set itemStr "$type$userName\t$selector\t$hostname\t$port\r\n"
     append menuStr $itemStr

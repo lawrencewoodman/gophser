@@ -20,15 +20,14 @@ namespace eval gophermap {
 }
 
 
-proc gophermap::process {menuVar _files _localDir _selectorPath} {
+proc gophermap::process {_menu _files _localDir _selectorPath} {
   variable menu
   variable files
   variable localDir
   variable selectorPath
   variable descriptions
 
-  upvar $menuVar menuVal
-  set menu $menuVal
+  set menu $_menu
   set files $_files
   set localDir $_localDir
   set selectorPath $_selectorPath
@@ -41,7 +40,7 @@ proc gophermap::process {menuVar _files _localDir _selectorPath} {
   $interp alias describe gophermap::Describe
   $interp alias listFiles gophermap::ListFiles
   $interp invokehidden source [file join $localDir $selectorPath gophermap]
-  set menuVal $menu
+  return $menu
 }
 
 
@@ -50,7 +49,7 @@ proc gophermap::Menu {command args} {
   switch -- $command {
     item {
       # TODO: ensure can only include files in the current location?
-      ::gophers::menu::item menu {*}$args
+      set menu [::gophers::menu::item $menu {*}$args]
     }
     default {
       return -code error "menu: invalid command: $command"
@@ -76,6 +75,7 @@ proc gophermap::ListFiles {args} {
   if {[llength $args]} {
     return -code error "listFiles: doesn't currently take any arguments"
   }
-  ::gophers::listDir -nogophermap -files $files -descriptions $descriptions \
-                     menu $localDir $selectorPath
+  set menu [::gophers::listDir -nogophermap -files $files \
+                               -descriptions $descriptions \
+                               $menu $localDir $selectorPath]
 }
