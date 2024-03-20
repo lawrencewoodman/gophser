@@ -92,9 +92,8 @@ proc gophers::handleSelector {sock selector} {
       }
     }
     return true
-  } else {
-    return false
   }
+  return false
 }
 
 

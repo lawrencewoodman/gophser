@@ -7,8 +7,8 @@
 # Licensed under an MIT licence.  Please see LICENCE.md for details.
 #
 
-# TODO: Move this under gophers::
-namespace eval gophermap {
+
+namespace eval gophers::gophermap {
   namespace export {[a-z]*}
 
   variable menu  
@@ -20,7 +20,7 @@ namespace eval gophermap {
 }
 
 
-proc gophermap::process {_menu _files _localDir _selectorPath} {
+proc gophers::gophermap::process {_menu _files _localDir _selectorPath} {
   variable menu
   variable files
   variable localDir
@@ -36,15 +36,15 @@ proc gophermap::process {_menu _files _localDir _selectorPath} {
 
   set interp [interp create -safe]
   $interp eval {unset {*}[info vars]}
-  $interp alias menu gophermap::Menu
-  $interp alias describe gophermap::Describe
-  $interp alias listFiles gophermap::ListFiles
+  $interp alias menu ::gophers::gophermap::Menu
+  $interp alias describe ::gophers::gophermap::Describe
+  $interp alias listFiles ::gophers::gophermap::ListFiles
   $interp invokehidden source [file join $localDir $selectorPath gophermap]
   return $menu
 }
 
 
-proc gophermap::Menu {command args} {
+proc gophers::gophermap::Menu {command args} {
   variable menu
   switch -- $command {
     item {
@@ -59,13 +59,13 @@ proc gophermap::Menu {command args} {
 
 
 # TODO: Be able to add extra info next to filename such as size and date
-proc gophermap::Describe {filename description} {
+proc gophers::gophermap::Describe {filename description} {
   variable descriptions
   dict set descriptions $filename $description
 }
 
 
-proc gophermap::ListFiles {args} {
+proc gophers::gophermap::ListFiles {args} {
   variable menu
   variable files
   variable localDir

@@ -6,18 +6,19 @@ set RepoRootDir [file join $ThisScriptDir ..]
 source [file join $ThisScriptDir test_helpers.tcl]
 source [file join $RepoRootDir router.tcl]
 
+
 # Create the routes to test against
-router::route "" testRoot
-router::route "/files" testFiles
-router::route "/files/*" testFilesSplat
-router::route "/{dir}/{filename}" testDirFilename
+gophers::router::route "" testRoot
+gophers::router::route "/files" testFiles
+gophers::router::route "/files/*" testFilesSplat
+gophers::router::route "/{dir}/{filename}" testDirFilename
 
 
 test getHandlerInfo-1 {Return false if route not found} \
 -setup {
   set selector "bob"
 } -body {
-  router::getHandlerInfo $selector
+  gophers::router::getHandlerInfo $selector
 } -result {}
 
 
@@ -25,7 +26,7 @@ test getHandlerInfo-2 {Detect an empty pattern for the root} \
 -setup {
   set selector ""
 } -body {
-  router::getHandlerInfo $selector
+  gophers::router::getHandlerInfo $selector
 } -result [list testRoot {/}]
 
 
@@ -33,7 +34,7 @@ test getHandlerInfo-3 {Detect an empty pattern for the root with a trailing slas
 -setup {
   set selector {/}
 } -body {
-  router::getHandlerInfo $selector
+  gophers::router::getHandlerInfo $selector
 } -result [list testRoot {/}]
 
 
@@ -41,7 +42,7 @@ test getHandlerInfo-4 {Detect a single splat on its own} \
 -setup {
   set selector {/files/fred.txt}
 } -body {
-  router::getHandlerInfo $selector
+  gophers::router::getHandlerInfo $selector
 } -result [list testFilesSplat {/files/fred.txt fred.txt}]
 
 
@@ -49,7 +50,7 @@ test getHandlerInfo-5 {Detect a single splat on its own against multiple sub-dir
 -setup {
   set selector {/files/something/bob.txt}
 } -body {
-  router::getHandlerInfo $selector
+  gophers::router::getHandlerInfo $selector
 } -result [list testFilesSplat {/files/something/bob.txt something/bob.txt}]
 
 
@@ -57,7 +58,7 @@ test getHandlerInfo-6 {Detect named parameters} \
 -setup {
   set selector {/dirA/someFile.txt}
 } -body {
-  router::getHandlerInfo $selector
+  gophers::router::getHandlerInfo $selector
 } -result [list testDirFilename {/dirA/someFile.txt dirA someFile.txt}]
 
 
@@ -65,7 +66,7 @@ test getHandlerInfo-7 {Detect exact path} \
 -setup {
   set selector {/files}
 } -body {
-  router::getHandlerInfo $selector
+  gophers::router::getHandlerInfo $selector
 } -result [list testFiles  {/files}]
 
 
@@ -73,7 +74,7 @@ test getHandlerInfo-8 {Detect exact path with trailing slash} \
 -setup {
   set selector {/files/}
 } -body {
-  router::getHandlerInfo $selector
+  gophers::router::getHandlerInfo $selector
 } -result [list testFiles {/files}]
 
 
@@ -92,7 +93,7 @@ test safeSelector-1 {} \
 } -body {
   set res {}
   foreach selector $selectors {
-    lappend res [router::safeSelector $selector]
+    lappend res [gophers::router::safeSelector $selector]
   }
   set res
 } -result [list /tests /fred/bob/dave /fred / /gerald /~fred \

@@ -11,14 +11,14 @@
 
 
 # TODO: Think about name format and rename file?
-namespace eval router {
+namespace eval gophers::router {
   namespace export {[a-z]*}
   variable routes {}
 }
 
 # TODO: Restrict pattern
 # TODO: Sort routes after adding from most specific to most general
-proc router::route {pattern handlerName} {
+proc gophers::router::route {pattern handlerName} {
   variable routes
   set route [NewRoute $pattern]
   lappend routes [list {*}$route $handlerName]
@@ -28,7 +28,7 @@ proc router::route {pattern handlerName} {
 # TODO: rename
 # TODO: Assumes selector is safe at this point?
 # Perhaps use namespace to determine whether input has been checked
-proc router::getHandlerInfo {selector} {
+proc gophers::router::getHandlerInfo {selector} {
   variable routes
   set selector [safeSelector $selector]
   foreach route $routes {
@@ -50,7 +50,7 @@ proc router::getHandlerInfo {selector} {
 # Resolves .. without going past root of path
 # Removes . directory element
 # Supports directory elements beginning with ~
-proc router::safeSelector {selectorPath} {
+proc gophers::router::safeSelector {selectorPath} {
   set selectorPath [string map {" " "%20"} $selectorPath]
   set elements [file split $selectorPath]
   set newSelectorPath [list]
@@ -68,7 +68,7 @@ proc router::safeSelector {selectorPath} {
 }
 
 
-proc router::NewRoute {pattern} {
+proc gophers::router::NewRoute {pattern} {
   lassign [PathToRegex $pattern] regex keys
   return [list $pattern $regex $keys]
 }
@@ -77,7 +77,7 @@ proc router::NewRoute {pattern} {
 # TODO: Should * only be allowed at the end?
 # TODO: Test
 # Returns: {regex keys}
-proc router::PathToRegex {path} {
+proc gophers::router::PathToRegex {path} {
   set keys [regexp -all -inline -- "\{.*?\}" $path]
   set regex "^$path\/?$"
   # Escape / and . in path for regex
