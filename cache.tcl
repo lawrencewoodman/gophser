@@ -46,7 +46,7 @@ proc gophers::cache::Clean {} {
   set oldSelectors [list]
   dict for {selectorPath entry} $store {
     lassign $entry getTime
-    # if the entry is more than 60 seconds old, note it for removal
+    # If the entry is more than 60 seconds old, note it for removal
     if {[clock seconds] - $getTime > 60} {
       lappend oldSelectors $selectorPath
     }
