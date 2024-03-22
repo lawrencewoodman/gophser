@@ -80,6 +80,10 @@ proc TestHelpers::gopherSwarmGetVerifyResults {} {
     error "number of results != number of connections"
   }
   set wantResult [TestHelpers::gopherGet localhost 7070 $swarmSelector]
+  # If error received.  This is only sufficient for test nothing more
+  if {[string index $wantResult 0] eq "3"} {
+    error "received error: $wantResult"
+  }
   dict for {- res} $swarmResults {
     if {$res ne $wantResult} {
       error "unexpected result:\n got:$res\n want: $wantResult"
@@ -88,23 +92,23 @@ proc TestHelpers::gopherSwarmGetVerifyResults {} {
 }
 
 
-proc TestHelpers::startServer {configContent} {
+proc TestHelpers::startServer {configScript} {
   global RepoRootDir
   set t [thread::create -joinable {
-    vwait configContent
+    vwait configScript
     vwait repoRootDir
     source [file join $repoRootDir gophers.tcl]
-    set fd [file tempfile tmpConfigFilename "gopher_config.test"]
-    puts $fd $configContent
-    close $fd
-    gophers::init $tmpConfigFilename
+    eval $configScript
+    set port 7070
+    gophers::init $port
     vwait isRunning
     vwait forever
     gophers::shutdown
-    file delete $tmpConfigFilename
   }]
-  thread::send -async $t [list set configContent $configContent]
+  thread::send -async $t [list set configScript $configScript]
   thread::send -async $t [list set repoRootDir $RepoRootDir]
+  # Make sure gopher server is running before exiting function
+  # so that nothing tries to get from it until it is ready
   thread::send $t [list set isRunning 1]
   return $t
 }

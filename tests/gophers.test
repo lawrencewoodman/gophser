@@ -15,9 +15,11 @@ source [file join $ThisScriptDir test_helpers.tcl]
 
 test init-1 {Check can read menu from server when no gophermap} \
 -setup {
-  set configContent "log suppress all
-  mount \"[file normalize $RepoRootDir]\" \"/\""
-  set serverThread [TestHelpers::startServer $configContent]
+  set configScript {
+    gophers::log suppress all
+    gophers::mount [file normalize $RepoRootDir] "/"
+  }
+  set serverThread [TestHelpers::startServer $configScript]
 } -body {
   TestHelpers::gopherGet localhost 7070 "/tests/"
 } -cleanup {
@@ -35,9 +37,11 @@ test init-1 {Check can read menu from server when no gophermap} \
 
 test init-2 {Check gophermap is processed in a directory} \
 -setup {
-  set configContent "log suppress all
-  mount \"[file normalize $RepoRootDir]\" \"/\""
-  set serverThread [TestHelpers::startServer $configContent]
+  set configScript {
+    gophers::log suppress all
+    gophers::mount [file normalize $RepoRootDir] "/"
+  }
+  set serverThread [TestHelpers::startServer $configScript]
 } -body {
   TestHelpers::gopherGet localhost 7070 "/tests/fixtures/"
 } -cleanup {

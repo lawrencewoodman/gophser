@@ -43,21 +43,29 @@ proc outputStats {selectors timings} {
   }
 }
 
-set configContent [join [list \
-  "log suppress all" \
-  "route \"/bigfile\" sendBigFile" \
-  "route \"/say/{word}\" sendWord" \
-  "mount \"[file normalize $RepoRootDir]\" \"/\"" \
-  "proc sendWord {selector args} {" \
-  "  string map {\"%20\" \" \"} \$args" \
-  "}" \
-  "proc sendBigFile {selector args} {" \
-  "  set str {}" \
-  "  for {set i 0} {\$i < 9999} {incr i} {" \
-  "    append str {abcdefghijklmnopqrstuvwxyz0123}" \
-  "  }" \
-  "  return \$str" \
-  "}"] "\n"]
+set configScript {
+  proc sendWord {selector args} {
+    return [list text [string map {"%20" " "} $args]]
+  }
+
+  proc makeBigStr {} {
+    set str {}
+    for {set i 0} {$i < 9999} {incr i} {
+      append str {abcdefghijklmnopqrstuvwxyz0123}
+    }
+    return $str
+  }
+
+  proc sendBigFile {bigStr selector args} {
+    return [list text $bigStr]
+  }
+
+  set bigStr [makeBigStr]
+  gophers::log suppress all
+  gophers::route "/bigfile" [list sendBigFile $bigStr]
+  gophers::route "/say/{word}" sendWord
+  gophers::mount [file normalize $RepoRootDir] "/"
+}
 
 #set selectors {"/tests/"}
 #set selectors {"/say/hello"}
@@ -66,7 +74,7 @@ set selectors {
   "/tests/fixtures/"
 }
 #set selectors {"/bigfile"}
-set serverThread [TestHelpers::startServer $configContent]
+set serverThread [TestHelpers::startServer $configScript]
 
 puts "Consecutive Connections"
 puts "=======================\n"

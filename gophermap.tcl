@@ -65,17 +65,14 @@ proc gophers::gophermap::Describe {filename description} {
 }
 
 
-proc gophers::gophermap::ListFiles {args} {
+proc gophers::gophermap::ListFiles {} {
   variable menu
   variable files
   variable localDir
   variable selectorPath
   variable descriptions
   
-  if {[llength $args]} {
-    return -code error "listFiles: doesn't currently take any arguments"
-  }
-  set menu [::gophers::listDir -nogophermap -files $files \
+  set menu [::gophers::ListDir -nogophermap -files $files \
                                -descriptions $descriptions \
                                $menu $localDir $selectorPath]
 }

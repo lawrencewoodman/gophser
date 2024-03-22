@@ -7,12 +7,10 @@
 
 namespace eval gophers {
   namespace export {[a-z]*}
-  namespace ensemble create
 
   variable rootDir {}
   # TODO: Rename listen
   variable listen
-  variable configOptions
   variable sendMsgs [dict create]
   # TODO: improve statuses
   # Status of a send:
@@ -20,21 +18,19 @@ namespace eval gophers {
   #  ready:   something is ready to send
   #  done:    nothing left to send, close
   variable sendStatus [dict create]
+  variable configOptions [dict create logger [dict create suppress none]]
 }
 
+# TODO: Move RepoRootDir inside gophers:: or otherwise stop it being global
 set RepoRootDir [file dirname [info script]]
 source [file join $RepoRootDir router.tcl]
-source [file join $RepoRootDir config.tcl]
 source [file join $RepoRootDir menu.tcl]
 source [file join $RepoRootDir cache.tcl]
 source [file join $RepoRootDir gophermap.tcl]
 
-proc gophers::init {configFilename} {
+proc gophers::init {port} {
   variable listen
-  variable configOptions
-  set configOptions [config::load $configFilename]
-  # TODO: Add port to config that can't be changed once run
-  set listen [socket -server gophers::clientConnect 7070]
+  set listen [socket -server gophers::ClientConnect $port]
 }
 
 proc gophers::shutdown {} {
@@ -43,29 +39,70 @@ proc gophers::shutdown {} {
 }
 
 
-proc gophers::clientConnect {sock host port} {
+# TODO: Ensure localDir isn't relative
+proc gophers::mount {localDir selectorPath} {
+  set selectorPath "[::gophers::router::safeSelector $selectorPath]*"
+
+  if {![file exists $localDir]} {
+    error "local directory doesn't exist: $localDir"
+  }
+
+  if {![file isdirectory $localDir]} {
+    error "local directory isn't a directory: $localDir"
+  }
+
+  router::route $selectorPath [list gophers::ServeDir $localDir]
+}
+
+
+# TODO: Rename
+# TODO: make pattern safe
+proc gophers::route {pattern handlerName} {
+  router::route $pattern $handlerName
+}
+
+
+# TODO: Consider basing off log tcllib package
+proc gophers::log {command args} {
   variable configOptions
-  variable sendStatus
-  chan configure $sock -buffering line -blocking 0 -translation {auto binary}
-  dict set sendStatus $sock "waiting"
-  chan event $sock readable [list gophers::readSelector $sock]
-  chan event $sock writable [list ::gophers::sendTextWhenWritable $sock]
-  if {[dict get $configOptions logger suppress] ne "all"} {
-    puts "Connection from $host:$port"
+  # TODO: Think about what to use for reporting (info?)
+  switch -- $command {
+    info {
+      if {[dict get $configOptions logger suppress] ne "all"} {
+        puts [lindex $args 0]
+      }
+    }
+    suppress {
+      # TODO: Improve error handling
+      dict set configOptions logger suppress [lindex $args 0]
+    }
+    default {
+      return -code error "invalid command for log: $command"
+    }
   }
 }
 
 
+proc gophers::ClientConnect {sock host port} {
+  variable configOptions
+  variable sendStatus
+  chan configure $sock -buffering line -blocking 0 -translation {auto binary}
+  dict set sendStatus $sock "waiting"
+  chan event $sock readable [list gophers::ReadSelector $sock]
+  chan event $sock writable [list ::gophers::SendTextWhenWritable $sock]
+
+  log info "Connection from $host:$port"
+}
+
+
 # TODO: Handle client sending too much data
-proc gophers::readSelector {sock} {
+proc gophers::ReadSelector {sock} {
   variable sendStatus
   if {[catch {gets $sock selector} len] || [eof $sock]} {
       catch {close $sock}
   } elseif {$len >= 0} {
-    if {![gophers::handleSelector $sock $selector]} {
-      gophers::sendText $sock "3Error: file not found\tFAKE\t(NULL)\t0"
-      # TODO: Close send variables for sock
-      catch {close $sock}
+    if {![gophers::HandleSelector $sock $selector]} {
+      gophers::SendText $sock "3Error: file not found\tFAKE\t(NULL)\t0"
     }
     dict set sendStatus $sock "done"
     # TODO: set routine to tidy up sendDones, etc that have been around for
@@ -75,7 +112,7 @@ proc gophers::readSelector {sock} {
 
 
 # TODO: report better errors in case handler returns an error
-proc gophers::handleSelector {sock selector} {
+proc gophers::HandleSelector {sock selector} {
   variable interp
   set selector [router::safeSelector $selector]
   set handlerInfo [router::getHandlerInfo $selector]
@@ -85,7 +122,7 @@ proc gophers::handleSelector {sock selector} {
     lassign [{*}$handlerScript {*}$params] type value
     switch -- $type {
       text {
-        sendText $sock $value
+        SendText $sock $value
       }
       default {
         error "unknown type: $type"
@@ -99,7 +136,7 @@ proc gophers::handleSelector {sock selector} {
 
 # TODO: Be careful file isn't too big and reduce transmission rate if big and under heavy load
 # TODO: Catch errors
-proc gophers::readFile {filename} {
+proc gophers::ReadFile {filename} {
   # TODO: put filename handling code into a separate function
   set filename [string trimleft $filename "."]
   set nativeFilename [file normalize $filename]
@@ -114,7 +151,7 @@ proc gophers::readFile {filename} {
 # To be called by writable event to send text when sock is writable
 # This will break the text into 10k chunks to help if we have multiple
 # slow connections.
-proc gophers::sendTextWhenWritable {sock} {
+proc gophers::SendTextWhenWritable {sock} {
   variable sendMsgs
   variable sendStatus
   if {[dict get $sendStatus $sock] eq "waiting"} {
@@ -144,10 +181,9 @@ proc gophers::sendTextWhenWritable {sock} {
 
 
 # TODO: Have another one for sendBinary?
-proc gophers::sendText {sock msg} {
+proc gophers::SendText {sock msg} {
   variable sendMsgs
   variable sendStatus
-
   # TODO: Make sendMsgs a list so can send multiple messages?
   dict set sendMsgs $sock $msg
   dict set sendStatus $sock ready
@@ -156,7 +192,7 @@ proc gophers::sendText {sock msg} {
 
 # TODO: Rename
 # TODO: Do we need selectorPath?
-proc gophers::serveDir {localDir selectorPath args} {
+proc gophers::ServeDir {localDir selectorPath args} {
   # TODO: Should we use file join args or safeSelector for args?
   set path [file join $localDir [file join {*}$args]]
   set pathPermissions [file attributes $path -permissions]
@@ -167,12 +203,12 @@ proc gophers::serveDir {localDir selectorPath args} {
   # TODO: make path joining safe and check world readable
   if {[file isfile $path]} {
     # TODO: Don't allow gophermap to be downloaded
-    return [list text [readFile $path]]
+    return [list text [ReadFile $path]]
   } elseif {[file isdirectory $path]} {
     lassign [gophers::cache get $selectorPath] inCache menuText
     if {!$inCache} {
       set menu [menu create localhost 7070]
-      set menu [listDir $menu $localDir [file join {*}$args]]
+      set menu [ListDir $menu $localDir [file join {*}$args]]
       set menuText [menu render $menu]
       gophers::cache put $selectorPath $menuText
     }
@@ -191,7 +227,7 @@ proc gophers::serveDir {localDir selectorPath args} {
 # TODO: Rename -files to -filenames?
 # TODO: Make this safer and suitable for running as master command from interpreter
 # TODO: Restrict directories and look at permissions (world readable?)
-proc gophers::listDir {args} {
+proc gophers::ListDir {args} {
   array set options {}
   while {[llength $args]} {
     switch -glob -- [lindex $args 0] {

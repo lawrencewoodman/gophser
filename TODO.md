@@ -19,3 +19,5 @@
 * Don't serve the gophermap
 * Support getting files using gopher
 * Add an option to gophermap, not to cache
+* Test that a delay in sending the selector after connect doesn't stop other connections
+* Replace error statements as necessary
