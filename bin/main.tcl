@@ -22,7 +22,7 @@ proc main {params} {
 
 
 proc sendWord {selector args} {
-  string map {"%20" " "} $args
+  return [list text [string map {"%20" " "} $args]]
 }
 
 
