@@ -119,7 +119,9 @@ proc gophers::HandleSelector {sock selector} {
   if {$handlerInfo ne {}} {
     lassign $handlerInfo handlerScript params
     # TODO: Better safer way of doing this?
-    lassign [{*}$handlerScript {*}$params] type value
+    if {[catch {lassign [{*}$handlerScript {*}$params] type value}]} {
+      error "error running handler for selector: $selector - $::errorInfo"
+    }
     switch -- $type {
       text {
         SendText $sock $value
