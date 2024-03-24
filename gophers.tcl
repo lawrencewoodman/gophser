@@ -41,7 +41,7 @@ proc gophers::shutdown {} {
 
 # TODO: Ensure localDir isn't relative
 proc gophers::mount {localDir selectorPath} {
-  set selectorPath "[::gophers::router::safeSelector $selectorPath]*"
+  set selectorPathGlob "[router::safeSelector $selectorPath]*"
 
   if {![file exists $localDir]} {
     error "local directory doesn't exist: $localDir"
@@ -51,7 +51,7 @@ proc gophers::mount {localDir selectorPath} {
     error "local directory isn't a directory: $localDir"
   }
 
-  router::route $selectorPath [list gophers::ServeDir $localDir]
+  router::route $selectorPathGlob [list gophers::ServePath $localDir $selectorPath]
 }
 
 
@@ -69,7 +69,12 @@ proc gophers::log {command args} {
   switch -- $command {
     info {
       if {[dict get $configOptions logger suppress] ne "all"} {
-        puts [lindex $args 0]
+        puts "Info:    [lindex $args 0]"
+      }
+    }
+    warning {
+      if {[dict get $configOptions logger suppress] ne "all"} {
+        puts "Warning: [lindex $args 0]"
       }
     }
     suppress {
@@ -91,7 +96,7 @@ proc gophers::ClientConnect {sock host port} {
   chan event $sock readable [list gophers::ReadSelector $sock]
   chan event $sock writable [list ::gophers::SendTextWhenWritable $sock]
 
-  log info "Connection from $host:$port"
+  log info "connection from $host:$port"
 }
 
 
@@ -101,8 +106,10 @@ proc gophers::ReadSelector {sock} {
   if {[catch {gets $sock selector} len] || [eof $sock]} {
       catch {close $sock}
   } elseif {$len >= 0} {
+    set selector [router::safeSelector $selector]
     if {![gophers::HandleSelector $sock $selector]} {
-      gophers::SendText $sock "3Error: file not found\tFAKE\t(NULL)\t0"
+      log warning "selector not found: $selector"
+      gophers::SendError $sock "path not found"
     }
     dict set sendStatus $sock "done"
     # TODO: set routine to tidy up sendDones, etc that have been around for
@@ -114,7 +121,6 @@ proc gophers::ReadSelector {sock} {
 # TODO: report better errors in case handler returns an error
 proc gophers::HandleSelector {sock selector} {
   variable interp
-  set selector [router::safeSelector $selector]
   set handlerInfo [router::getHandlerInfo $selector]
   if {$handlerInfo ne {}} {
     lassign $handlerInfo handlerScript params
@@ -192,17 +198,32 @@ proc gophers::SendText {sock msg} {
 }
 
 
-# TODO: Rename
+# TODO: Turn any tabs in message to % notation
+proc gophers::SendError {sock msg} {
+  gophers::SendText $sock "3$msg\tFAKE\t(NULL)\t0"
+  dict set sendStatus $sock "done"
+}
+
+
 # TODO: Do we need selectorPath?
-proc gophers::ServeDir {localDir selectorPath args} {
-  # TODO: Should we use file join args or safeSelector for args?
-  set path [file join $localDir [file join {*}$args]]
+# selectorRootPath is the path that localDir resides in the selector hierarchy
+proc gophers::ServePath {localDir selectorRootPath selectorPath args} {
+  set selectorSubPath [string trimleft [file join {*}$args] "/"]
+  set path [file join $localDir $selectorSubPath]
+
+  if {![file exists $path]} {
+    log warning "local path doesn't exist: $path for selector: $selectorPath"
+    SendError "path not found"
+  }
+
   set pathPermissions [file attributes $path -permissions]
   if {($pathPermissions & 4) != 4} {
-    error "local path isn't world readable: $path"
+    log warning "local path isn't world readable: $path for selector: $selectorPath"
+    SendError "path not found"
   }
 
   # TODO: make path joining safe and check world readable
+
   if {[file isfile $path]} {
     # TODO: Don't allow gophermap to be downloaded
     return [list text [ReadFile $path]]
@@ -210,7 +231,7 @@ proc gophers::ServeDir {localDir selectorPath args} {
     lassign [gophers::cache get $selectorPath] inCache menuText
     if {!$inCache} {
       set menu [menu create localhost 7070]
-      set menu [ListDir $menu $localDir [file join {*}$args]]
+      set menu [ListDir $menu $localDir $selectorRootPath $selectorSubPath]
       set menuText [menu render $menu]
       gophers::cache put $selectorPath $menuText
     }
@@ -221,7 +242,7 @@ proc gophers::ServeDir {localDir selectorPath args} {
 
 
 
-# listDir ?switches? menu localDir selectorPath
+# listDir ?switches? menu localDir selectorRootPath selectorSubPath
 # switches:
 #  -nogophermap      Don't process any gophermaps found
 #  -files files      Pass a list of filenames rather than glob them
@@ -241,14 +262,13 @@ proc gophers::ListDir {args} {
       default break
     }
   }
-  if {[llength $args] != 3} {
+  if {[llength $args] != 4} {
     return -code error "listDir: invalid number of arguments"
   }
-  lassign $args menu localDir selectorPath
-
+  lassign $args menu localDir selectorRootPath selectorSubPath
   set localDir [string trimleft $localDir "."]
   set localDir [file normalize $localDir]
-  set selectorLocalDir [file join $localDir $selectorPath]
+  set selectorLocalDir [file join $localDir $selectorSubPath]
   if {[info exists options(files)]} {
     set files $options(files)
   } else {
@@ -260,7 +280,7 @@ proc gophers::ListDir {args} {
   if {![info exists options(nogophermap)] &&
        [file exists [file join $selectorLocalDir gophermap]]} {
     # TODO: Handle exceptions
-    return [gophermap::process $menu $files $localDir $selectorPath]
+    return [gophermap::process $menu $files $localDir $selectorRootPath $selectorSubPath]
   }
 
   if {[info exists options(descriptions)]} {
@@ -285,7 +305,7 @@ proc gophers::ListDir {args} {
       set prevFileDescribed false
     }
 
-    set selector "/[file join $selectorPath $file]"
+    set selector "[file join $selectorRootPath $selectorSubPath $file]"
     set nativeFile [file join $selectorLocalDir $file]
     if {[file isfile $nativeFile]} {
       set menu [menu item $menu text $file $selector]

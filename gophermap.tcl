@@ -14,32 +14,30 @@ namespace eval gophers::gophermap {
   variable menu  
   # Sorted list of files found in the same directory as the gophermap
   variable files
-  variable localDir
-  variable selectorPath
   variable descriptions
 }
 
 
-proc gophers::gophermap::process {_menu _files _localDir _selectorPath} {
+proc gophers::gophermap::process {
+  _menu _files localDir selectorRootPath selectorSubPath
+} {
   variable menu
   variable files
-  variable localDir
-  variable selectorPath
   variable descriptions
 
   set menu $_menu
   set files $_files
-  set localDir $_localDir
-  set selectorPath $_selectorPath
-  
   set descriptions [dict create]
 
   set interp [interp create -safe]
   $interp eval {unset {*}[info vars]}
   $interp alias menu ::gophers::gophermap::Menu
   $interp alias describe ::gophers::gophermap::Describe
-  $interp alias listFiles ::gophers::gophermap::ListFiles
-  $interp invokehidden source [file join $localDir $selectorPath gophermap]
+  $interp alias listFiles ::gophers::gophermap::ListFiles $localDir $selectorRootPath $selectorSubPath
+  set gophermapPath [file join $localDir $selectorSubPath gophermap]
+  if {[catch {$interp invokehidden source $gophermapPath}]} {
+    error "error processing: $gophermapPath, for selector: [file join $selectorRootPath $selectorSubPath], $::errorInfo"
+  }
   return $menu
 }
 
@@ -65,14 +63,13 @@ proc gophers::gophermap::Describe {filename description} {
 }
 
 
-proc gophers::gophermap::ListFiles {} {
+proc gophers::gophermap::ListFiles {localDir selectorRootPath selectorSubPath} {
   variable menu
   variable files
-  variable localDir
-  variable selectorPath
   variable descriptions
   
   set menu [::gophers::ListDir -nogophermap -files $files \
                                -descriptions $descriptions \
-                               $menu $localDir $selectorPath]
+                               $menu $localDir \
+                               $selectorRootPath $selectorSubPath]
 }

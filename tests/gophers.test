@@ -60,4 +60,27 @@ test init-2 {Check gophermap is processed in a directory} \
   "0hi.txt\t/tests/fixtures/hi.txt\tlocalhost\t7070\r\n" \
   ".\r\n"]
 
+
+test init-3 {Check can mount somewhere other than root} \
+-setup {
+  set configScript {
+    gophers::log suppress all
+    gophers::mount [file normalize $RepoRootDir] "/bob"
+  }
+  set serverThread [TestHelpers::startServer $configScript]
+} -body {
+  TestHelpers::gopherGet localhost 7070 "/bob/tests/"
+} -cleanup {
+  TestHelpers::shutdownServer $serverThread]
+} -result [string cat \
+  "0all.tcl\t/bob/tests/all.tcl\tlocalhost\t7070\r\n" \
+  "1fixtures\t/bob/tests/fixtures\tlocalhost\t7070\r\n" \
+  "0gophers.test\t/bob/tests/gophers.test\tlocalhost\t7070\r\n" \
+  "0menu.test\t/bob/tests/menu.test\tlocalhost\t7070\r\n" \
+  "0router.test\t/bob/tests/router.test\tlocalhost\t7070\r\n" \
+  "1stress\t/bob/tests/stress\tlocalhost\t7070\r\n" \
+  "0test_helpers.tcl\t/bob/tests/test_helpers.tcl\tlocalhost\t7070\r\n" \
+  ".\r\n"]
+
+
 cleanupTests
