@@ -20,8 +20,7 @@ namespace eval gophers::router {
 # TODO: Sort routes after adding from most specific to most general
 proc gophers::router::route {pattern handlerName} {
   variable routes
-  set route [NewRoute $pattern]
-  lappend routes [list {*}$route $handlerName]
+  lappend routes [list $pattern [PathToRegex $pattern] $handlerName]
   Sort
 }
 
@@ -29,15 +28,14 @@ proc gophers::router::route {pattern handlerName} {
 # TODO: rename
 # TODO: Assumes selector is safe at this point?
 # Perhaps use namespace to determine whether input has been checked
-proc gophers::router::getHandlerInfo {selector} {
+proc gophers::router::getHandler {selector} {
   variable routes
   set selector [safeSelector $selector]
   foreach route $routes {
     # TODO: Rename handlerName?
-    lassign $route pattern regex keys handlerName
-    set matches [regexp -all -inline -- $regex $selector]
-    if {$matches ne {}} {
-      return [list $handlerName $matches]
+    lassign $route - regex handlerName
+    if {[regexp -- $regex $selector]} {
+      return $handlerName
     }
   }
   return {}
@@ -69,22 +67,14 @@ proc gophers::router::safeSelector {selectorPath} {
 }
 
 
-proc gophers::router::NewRoute {pattern} {
-  lassign [PathToRegex $pattern] regex keys
-  return [list $pattern $regex $keys]
-}
 
-
-# TODO: Should * only be allowed at the end?
 # TODO: Test
-# Returns: {regex keys}
+# TODO: Should we just use string match wildcards instead?
+# Returns: regex
 proc gophers::router::PathToRegex {path} {
-  set keys [regexp -all -inline -- "\{.*?\}" $path]
   set regex "^$path\/?$"
   # Escape / and . in path for regex
-  set regex [string map {"*" "(.*)" "/" "\\/" "." "\\."} $regex]
-  set regex [regsub -all "\{.*?\}" $regex {([^\\/]+)}]
-  return [list $regex $keys]
+  return [string map {"*" "(.*)" "/" "\\/" "." "\\."} $regex]
 }
 
 

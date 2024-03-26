@@ -44,8 +44,9 @@ proc outputStats {selectors timings} {
 }
 
 set configScript {
-  proc sendWord {selector args} {
-    return [list text [string map {"%20" " "} $args]]
+  proc sendWord {selector} {
+    set word [gophers::stripSelectorPrefix "/say" $selector]
+    return [list text [string map {"%20" " "} $word]]
   }
 
   proc makeBigStr {} {
@@ -56,14 +57,14 @@ set configScript {
     return $str
   }
 
-  proc sendBigFile {bigStr selector args} {
+  proc sendBigFile {bigStr selector} {
     return [list text $bigStr]
   }
 
   set bigStr [makeBigStr]
   gophers::log suppress all
   gophers::route "/bigfile" [list sendBigFile $bigStr]
-  gophers::route "/say/{word}" sendWord
+  gophers::route "/say/*" sendWord
   gophers::mount [file normalize $RepoRootDir] "/"
 }
 
@@ -72,6 +73,7 @@ set selectors {
   "/bigfile" "/tests/test_helpers.tcl" "/tests/" "/tests/fixtures/"
   "/say/hello"
 }
+
 
 set serverThread [TestHelpers::startServer $configScript]
 

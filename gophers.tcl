@@ -127,11 +127,10 @@ proc gophers::ReadSelector {sock} {
 # TODO: report better errors in case handler returns an error
 proc gophers::HandleSelector {sock selector} {
   variable interp
-  set handlerInfo [router::getHandlerInfo $selector]
-  if {$handlerInfo ne {}} {
-    lassign $handlerInfo handlerScript params
+  set handler [router::getHandler $selector]
+  if {$handler ne {}} {
     # TODO: Better safer way of doing this?
-    if {[catch {lassign [{*}$handlerScript {*}$params] type value}]} {
+    if {[catch {lassign [{*}$handler $selector] type value}]} {
       error "error running handler for selector: $selector - $::errorInfo"
     }
     switch -- $type {
@@ -211,10 +210,26 @@ proc gophers::SendError {sock msg} {
 }
 
 
+# Remove the prefix from the selectorPath
+# This is useful to remove mount points and to access variables
+# passed in the selector path.
+proc gophers::stripSelectorPrefix {prefixPath selectorPath} {
+  set prefixPathParts [file split $prefixPath]
+  set pathParts [file split $selectorPath]
+  set compPathParts [lrange $pathParts 0 [llength $prefixPathParts]-1]
+  foreach prefixPart $prefixPathParts compPart $compPathParts {
+    if {$prefixPart ne $compPart} {
+      error "selector: $selectorPath does not contain prefix: $prefixPath"
+    }
+  }
+  return [file join {*}[lrange $pathParts [llength $prefixPathParts] end]]
+}
+
+
 # TODO: Do we need selectorPath?
-# selectorRootPath is the path that localDir resides in the selector hierarchy
-proc gophers::ServePath {localDir selectorRootPath selectorPath args} {
-  set selectorSubPath [string trimleft [file join {*}$args] "/"]
+# selectorMountPath is the path that localDir resides in the selector hierarchy
+proc gophers::ServePath {localDir selectorMountPath selectorPath} {
+  set selectorSubPath [stripSelectorPrefix $selectorMountPath $selectorPath]
   set path [file join $localDir $selectorSubPath]
 
   if {![file exists $path]} {
@@ -237,7 +252,7 @@ proc gophers::ServePath {localDir selectorRootPath selectorPath args} {
     lassign [gophers::cache get $selectorPath] inCache menuText
     if {!$inCache} {
       set menu [menu create localhost 7070]
-      set menu [ListDir $menu $localDir $selectorRootPath $selectorSubPath]
+      set menu [ListDir $menu $localDir $selectorMountPath $selectorSubPath]
       set menuText [menu render $menu]
       gophers::cache put $selectorPath $menuText
     }
@@ -248,7 +263,7 @@ proc gophers::ServePath {localDir selectorRootPath selectorPath args} {
 
 
 
-# listDir ?switches? menu localDir selectorRootPath selectorSubPath
+# listDir ?switches? menu localDir selectorMountPath selectorSubPath
 # switches:
 #  -nogophermap      Don't process any gophermaps found
 #  -files files      Pass a list of filenames rather than glob them
@@ -271,7 +286,7 @@ proc gophers::ListDir {args} {
   if {[llength $args] != 4} {
     return -code error "listDir: invalid number of arguments"
   }
-  lassign $args menu localDir selectorRootPath selectorSubPath
+  lassign $args menu localDir selectorMountPath selectorSubPath
   set localDir [string trimleft $localDir "."]
   set localDir [file normalize $localDir]
   set selectorLocalDir [file join $localDir $selectorSubPath]
@@ -286,7 +301,7 @@ proc gophers::ListDir {args} {
   if {![info exists options(nogophermap)] &&
        [file exists [file join $selectorLocalDir gophermap]]} {
     # TODO: Handle exceptions
-    return [gophermap::process $menu $files $localDir $selectorRootPath $selectorSubPath]
+    return [gophermap::process $menu $files $localDir $selectorMountPath $selectorSubPath]
   }
 
   if {[info exists options(descriptions)]} {
@@ -311,7 +326,7 @@ proc gophers::ListDir {args} {
       set prevFileDescribed false
     }
 
-    set selector "[file join $selectorRootPath $selectorSubPath $file]"
+    set selector "[file join $selectorMountPath $selectorSubPath $file]"
     set nativeFile [file join $selectorLocalDir $file]
     if {[file isfile $nativeFile]} {
       set menu [menu item $menu text $file $selector]

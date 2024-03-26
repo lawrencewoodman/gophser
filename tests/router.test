@@ -14,68 +14,68 @@ gophers::router::route "/" testRoot
 gophers::router::route "/*/*" testDirFilename
 
 
-test getHandlerInfo-1 {Return false if route not found} \
+test getHandler-1 {Return false if route not found} \
 -setup {
   set selector "bob"
 } -body {
-  gophers::router::getHandlerInfo $selector
+  gophers::router::getHandler $selector
 } -result {}
 
 
-test getHandlerInfo-2 {Detect an empty pattern for the root} \
+test getHandler-2 {Detect an empty pattern for the root} \
 -setup {
   set selector ""
 } -body {
-  gophers::router::getHandlerInfo $selector
-} -result [list testRoot {/}]
+  gophers::router::getHandler $selector
+} -result testRoot
 
 
-test getHandlerInfo-3 {Detect an empty pattern for the root with a trailing slash} \
+test getHandler-3 {Detect an empty pattern for the root with a trailing slash} \
 -setup {
   set selector {/}
 } -body {
-  gophers::router::getHandlerInfo $selector
-} -result [list testRoot {/}]
+  gophers::router::getHandler $selector
+} -result testRoot
 
 
-test getHandlerInfo-4 {Detect a single splat on its own} \
+test getHandler-4 {Detect a single splat on its own} \
 -setup {
   set selector {/files/fred.txt}
 } -body {
-  gophers::router::getHandlerInfo $selector
-} -result [list testFilesSplat {/files/fred.txt fred.txt}]
+  gophers::router::getHandler $selector
+} -result testFilesSplat
 
 
-test getHandlerInfo-5 {Detect a single splat on its own against multiple sub-directories} \
+test getHandler-5 {Detect a single splat on its own against multiple sub-directories} \
 -setup {
   set selector {/files/something/bob.txt}
 } -body {
-  gophers::router::getHandlerInfo $selector
-} -result [list testFilesSplat {/files/something/bob.txt something/bob.txt}]
+  gophers::router::getHandler $selector
+} -result testFilesSplat
 
 
-test getHandlerInfo-6 {Detect named parameters} \
+test getHandler-6 {Detect named parameters} \
 -setup {
   set selector {/dirA/someFile.txt}
 } -body {
-  gophers::router::getHandlerInfo $selector
-} -result [list testDirFilename {/dirA/someFile.txt dirA someFile.txt}]
+  gophers::router::getHandler $selector
+} -result testDirFilename
 
 
-test getHandlerInfo-7 {Detect exact path} \
+test getHandler-7 {Detect exact path} \
 -setup {
   set selector {/files}
 } -body {
-  gophers::router::getHandlerInfo $selector
-} -result [list testFiles  {/files}]
+  gophers::router::getHandler $selector
+} -result testFiles
 
 
-test getHandlerInfo-8 {Detect exact path with trailing slash} \
+test getHandler-8 {Detect exact path with trailing slash} \
 -setup {
   set selector {/files/}
 } -body {
-  gophers::router::getHandlerInfo $selector
-} -result [list testFiles {/files}]
+  gophers::router::getHandler $selector
+} -result testFiles
 
 
 test safeSelector-1 {} \
