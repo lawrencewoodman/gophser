@@ -16,11 +16,11 @@ namespace eval gophers::router {
   variable routes {}
 }
 
-# TODO: Restrict pattern
+# TODO: Restrict pattern and make safe
 # TODO: Sort routes after adding from most specific to most general
 proc gophers::router::route {pattern handlerName} {
   variable routes
-  lappend routes [list $pattern [PathToRegex $pattern] $handlerName]
+  lappend routes [list $pattern $handlerName]
   Sort
 }
 
@@ -33,8 +33,8 @@ proc gophers::router::getHandler {selector} {
   set selector [safeSelector $selector]
   foreach route $routes {
     # TODO: Rename handlerName?
-    lassign $route - regex handlerName
-    if {[regexp -- $regex $selector]} {
+    lassign $route pattern handlerName
+    if {[string match $pattern $selector]} {
       return $handlerName
     }
   }
@@ -64,17 +64,6 @@ proc gophers::router::safeSelector {selectorPath} {
     }
   }
   return "\/[join $newSelectorPath "/"]"
-}
-
-
-
-# TODO: Test
-# TODO: Should we just use string match wildcards instead?
-# Returns: regex
-proc gophers::router::PathToRegex {path} {
-  set regex "^$path\/?$"
-  # Escape / and . in path for regex
-  return [string map {"*" "(.*)" "/" "\\/" "." "\\."} $regex]
 }
 
 
