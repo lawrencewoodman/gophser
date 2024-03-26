@@ -8,10 +8,10 @@ source [file join $RepoRootDir router.tcl]
 
 
 # Create the routes to test against
-gophers::router::route "" testRoot
 gophers::router::route "/files" testFiles
 gophers::router::route "/files/*" testFilesSplat
-gophers::router::route "/{dir}/{filename}" testDirFilename
+gophers::router::route "/" testRoot
+gophers::router::route "/*/*" testDirFilename
 
 
 test getHandlerInfo-1 {Return false if route not found} \
@@ -89,6 +89,7 @@ test safeSelector-1 {} \
     /~fred
     /.fred
     {}
+    /
   }
 } -body {
   set res {}
@@ -97,6 +98,6 @@ test safeSelector-1 {} \
   }
   set res
 } -result [list /tests /fred/bob/dave /fred / /gerald /~fred \
-                /.fred /]
+                /.fred / /]
 
 cleanupTests

@@ -27,5 +27,3 @@ proc sendWord {selector args} {
 
 
 main $argv
-
-

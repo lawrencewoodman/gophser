@@ -40,8 +40,14 @@ proc gophers::shutdown {} {
 
 
 # TODO: Ensure localDir isn't relative
+# TODO: Allow wildcards in selectorPath - probably deny to start with
 proc gophers::mount {localDir selectorPath} {
-  set selectorPathGlob "[router::safeSelector $selectorPath]*"
+  set selectorPath [router::safeSelector $selectorPath]
+  if {$selectorPath eq "/"} {
+    set selectorPathGlob "/*"
+  } else {
+    set selectorPathGlob "$selectorPath/*"
+  }
 
   if {![file exists $localDir]} {
     error "local directory doesn't exist: $localDir"

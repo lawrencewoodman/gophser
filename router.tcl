@@ -22,6 +22,7 @@ proc gophers::router::route {pattern handlerName} {
   variable routes
   set route [NewRoute $pattern]
   lappend routes [list {*}$route $handlerName]
+  Sort
 }
 
 
@@ -84,4 +85,27 @@ proc gophers::router::PathToRegex {path} {
   set regex [string map {"*" "(.*)" "/" "\\/" "." "\\."} $regex]
   set regex [regsub -all "\{.*?\}" $regex {([^\\/]+)}]
   return [list $regex $keys]
+}
+
+
+# Sort the routes from most specific to least specific
+proc gophers::router::Sort {} {
+  variable routes
+  set routes [lsort -command CompareRoutes $routes]
+}
+
+
+# Compare the routes for lsort to determine which is most specific
+proc gophers::router::CompareRoutes {a b} {
+  set patternPartsA [file split [lindex $a 0]]
+  set patternPartsB [file split [lindex $b 0]]
+  foreach partA $patternPartsA partB $patternPartsB {
+    if {$partA ne $partB} {
+      if {$partA eq "*"} { return 1 }
+      if {$partB eq "*"} { return -1 }
+      if {$partA eq ""}  { return 1 }
+      if {$partB eq ""}  { return -1 }
+    }
+  }
+  return 0
 }

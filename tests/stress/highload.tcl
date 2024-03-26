@@ -67,13 +67,12 @@ set configScript {
   gophers::mount [file normalize $RepoRootDir] "/"
 }
 
-#set selectors {"/tests/"}
-#set selectors {"/say/hello"}
+
 set selectors {
-  "/bigfile" "/say/hello" "/tests/test_helpers.tcl" "/tests/"
-  "/tests/fixtures/"
+  "/bigfile" "/tests/test_helpers.tcl" "/tests/" "/tests/fixtures/"
+  "/say/hello"
 }
-#set selectors {"/bigfile"}
+
 set serverThread [TestHelpers::startServer $configScript]
 
 puts "Consecutive Connections"
