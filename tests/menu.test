@@ -1,11 +1,9 @@
 package require tcltest
 namespace import tcltest::*
 
-set ThisScriptDir [file dirname [info script]]
-set RepoRootDir [file join $ThisScriptDir ..]
-
-source [file join $RepoRootDir menu.tcl]
-source [file join $ThisScriptDir test_helpers.tcl]
+source [file join [file dirname [info script]] test_helpers.tcl]
+TestHelpers::setRepoRootDir {..}
+source [file join [TestHelpers::getRepoRootDir] menu.tcl]
 
 
 test render-1 {Check render adds correct .<cr><lf> ending to menu} \

@@ -2,7 +2,7 @@
 package require Thread
 
 namespace eval TestHelpers {
-  variable getStoreData {}
+  variable repoRootDir ""
   variable swarmSocks [list]
   variable swarmDone false
   variable swarmResults
@@ -93,7 +93,6 @@ proc TestHelpers::gopherSwarmGetVerifyResults {} {
 
 
 proc TestHelpers::startServer {configScript} {
-  global RepoRootDir
   set t [thread::create -joinable {
     vwait configScript
     vwait repoRootDir
@@ -106,7 +105,7 @@ proc TestHelpers::startServer {configScript} {
     gophers::shutdown
   }]
   thread::send -async $t [list set configScript $configScript]
-  thread::send -async $t [list set repoRootDir $RepoRootDir]
+  thread::send -async $t [list set repoRootDir [getRepoRootDir]]
   # Make sure gopher server is running before exiting function
   # so that nothing tries to get from it until it is ready
   thread::send $t [list set isRunning 1]
@@ -117,4 +116,20 @@ proc TestHelpers::startServer {configScript} {
 proc TestHelpers::shutdownServer {serverThread} {
   thread::send -async $serverThread [list set forever done]
   thread::join $serverThread
+}
+
+
+# rootRelativePath: how to get to root from script path
+proc TestHelpers::setRepoRootDir {rootRelativePath} {
+  variable repoRootDir
+  set repoRootDir [file normalize [file join [file dirname [info script]] $rootRelativePath]]
+}
+
+
+proc TestHelpers::getRepoRootDir {} {
+  variable repoRootDir
+  if {$repoRootDir eq ""} {
+    error "repoRootDir not set"
+  }
+  return $repoRootDir
 }

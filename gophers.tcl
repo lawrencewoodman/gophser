@@ -39,9 +39,24 @@ proc gophers::shutdown {} {
 }
 
 
-# TODO: Ensure localDir isn't relative
-# TODO: Allow wildcards in selectorPath - probably deny to start with
+# localDir: The local absolute directory path
+# selectorPath: The path for the selector which must not contain wildcards
 proc gophers::mount {localDir selectorPath} {
+  set localDir [string trim $localDir]
+
+  if {$localDir eq ""} {
+    return -code error "local dir blank"
+  }
+  if {[string index $localDir 0] ne "/"} {
+    return -code error "can not mount relative directories: $localDir"
+  }
+
+  if {[string match {*[*?]*} $selectorPath] ||
+      [string match {*\[*} $selectorPath] ||
+      [string match {*\]*} $selectorPath]} {
+    return -code error "selector can not contain wildcards"
+  }
+
   set selectorPath [router::safeSelector $selectorPath]
   if {$selectorPath eq "/"} {
     set selectorPathGlob "/*"
@@ -50,11 +65,11 @@ proc gophers::mount {localDir selectorPath} {
   }
 
   if {![file exists $localDir]} {
-    error "local directory doesn't exist: $localDir"
+    return -code error "local directory doesn't exist: $localDir"
   }
 
   if {![file isdirectory $localDir]} {
-    error "local directory isn't a directory: $localDir"
+    return -code error "local directory isn't a directory: $localDir"
   }
 
   router::route $selectorPathGlob [list gophers::ServePath $localDir $selectorPath]

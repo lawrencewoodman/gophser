@@ -1,23 +1,20 @@
 package require tcltest
 namespace import tcltest::*
 
-set ThisScriptDir [file dirname [info script]]
-set RepoRootDir [file join $ThisScriptDir ..]
-
-source [file join $RepoRootDir gophers.tcl]
-source [file join $ThisScriptDir test_helpers.tcl]
+source [file join [file dirname [info script]] test_helpers.tcl]
+TestHelpers::setRepoRootDir {..}
+source [file join [TestHelpers::getRepoRootDir] gophers.tcl]
 
 
 #TODO: Test thoroughly selector input using different line endings
 #TODO: to make sure correct translation options are being used
 
 
-
 test init-1 {Check can read menu from server when no gophermap} \
 -setup {
   set configScript {
     gophers::log suppress all
-    gophers::mount [file normalize $RepoRootDir] "/"
+    gophers::mount [file normalize $repoRootDir] "/"
   }
   set serverThread [TestHelpers::startServer $configScript]
 } -body {
@@ -39,7 +36,7 @@ test init-2 {Check gophermap is processed in a directory} \
 -setup {
   set configScript {
     gophers::log suppress all
-    gophers::mount [file normalize $RepoRootDir] "/"
+    gophers::mount [file normalize $repoRootDir] "/"
   }
   set serverThread [TestHelpers::startServer $configScript]
 } -body {
@@ -65,7 +62,7 @@ test init-3 {Check can mount somewhere other than root} \
 -setup {
   set configScript {
     gophers::log suppress all
-    gophers::mount [file normalize $RepoRootDir] "/bob"
+    gophers::mount [file normalize $repoRootDir] "/bob"
   }
   set serverThread [TestHelpers::startServer $configScript]
 } -body {
@@ -81,6 +78,49 @@ test init-3 {Check can mount somewhere other than root} \
   "1stress\t/bob/tests/stress\tlocalhost\t7070\r\n" \
   "0test_helpers.tcl\t/bob/tests/test_helpers.tcl\tlocalhost\t7070\r\n" \
   ".\r\n"]
+
+
+test mount-1 {Returns error if localDir is a relative path} \
+-body {
+  gophers::mount "fred/bob" "/"
+} -returnCodes {error} -result {can not mount relative directories: fred/bob}
+
+
+test mount-2 {Returns error if localDir is empty} \
+-body {
+  gophers::mount "" "/"
+} -returnCodes {error} -result {local dir blank}
+
+
+test mount-3 {Returns error if wildcards in selector} \
+-setup {
+  set selectors {
+    "/bob/*"
+    "/bob/*/fred/"
+    "/bob/?"
+    "/bob\[a-Z\]/"
+  }
+} -body {
+  lmap selector $selectors {
+    catch {gophers::mount "/" $selector} res options
+    list [dict get $options -code] $res
+  }
+} -result [list [list 1 "selector can not contain wildcards"] \
+                [list 1 "selector can not contain wildcards"] \
+                [list 1 "selector can not contain wildcards"] \
+                [list 1 "selector can not contain wildcards"]]
+
+
+test mount-4 {Returns error if localDir doesn't exist} \
+-body {
+  gophers::mount [file join [TestHelpers::getRepoRootDir] unknown] "/"
+} -returnCodes {error} -result "local directory doesn't exist: [file join [TestHelpers::getRepoRootDir] unknown]"
+
+
+test mount-5 {Returns error if localDir isn't a directory} \
+-body {
+  gophers::mount [file join [TestHelpers::getRepoRootDir] gophers.tcl] "/"
+} -returnCodes {error} -result "local directory isn't a directory: [file join [TestHelpers::getRepoRootDir] gophers.tcl]"
 
 
 cleanupTests

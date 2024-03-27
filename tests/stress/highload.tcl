@@ -1,6 +1,6 @@
-set ThisScriptDir [file dirname [info script]]
-set RepoRootDir [file join $ThisScriptDir .. ..]
-source [file join $ThisScriptDir .. test_helpers.tcl]
+source [file join [file dirname [info script]] .. test_helpers.tcl]
+TestHelpers::setRepoRootDir {../..}
+source [file join [TestHelpers::getRepoRootDir] gophers.tcl]
 
 
 proc stressServer {numConnections selectors} {
