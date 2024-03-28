@@ -1,7 +1,11 @@
-source [file join [file dirname [info script]] .. test_helpers.tcl]
-TestHelpers::setRepoRootDir {../..}
-source [file join [TestHelpers::getRepoRootDir] gophers.tcl]
-
+apply {{} {
+  set thisScriptDir [file dirname [info script]]
+  set moduleDir [file normalize [file join $thisScriptDir .. ..]]
+  set modules [lsort -decreasing [glob -directory $moduleDir gophers-*.tm]]
+  source [lindex $modules 0]
+  source [file join $moduleDir tests test_helpers.tcl]
+  TestHelpers::setRepoRootDir $moduleDir
+}}
 
 proc stressServer {numConnections selectors} {
   foreach selector $selectors {
@@ -65,7 +69,7 @@ set configScript {
   gophers::log suppress all
   gophers::route "/bigfile" [list sendBigFile $bigStr]
   gophers::route "/say/*" sendWord
-  gophers::mount [file normalize $RepoRootDir] "/"
+  gophers::mount [file normalize $repoRootDir] "/"
 }
 
 

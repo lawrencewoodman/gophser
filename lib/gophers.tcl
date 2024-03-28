@@ -5,28 +5,6 @@
 # Licensed under an MIT licence.  Please see LICENCE.md for details.
 #
 
-namespace eval gophers {
-  namespace export {[a-z]*}
-
-  variable rootDir {}
-  # TODO: Rename listen
-  variable listen
-  variable sendMsgs [dict create]
-  # TODO: improve statuses
-  # Status of a send:
-  #  waiting: waiting for something to send
-  #  ready:   something is ready to send
-  #  done:    nothing left to send, close
-  variable sendStatus [dict create]
-  variable configOptions [dict create logger [dict create suppress none]]
-}
-
-# TODO: Move RepoRootDir inside gophers:: or otherwise stop it being global
-set RepoRootDir [file dirname [info script]]
-source [file join $RepoRootDir router.tcl]
-source [file join $RepoRootDir menu.tcl]
-source [file join $RepoRootDir cache.tcl]
-source [file join $RepoRootDir gophermap.tcl]
 
 proc gophers::init {port} {
   variable listen
@@ -50,6 +28,8 @@ proc gophers::mount {localDir selectorPath} {
   if {[string index $localDir 0] ne "/"} {
     return -code error "can not mount relative directories: $localDir"
   }
+  
+  set localDir [file normalize $localDir]
 
   if {[string match {*[*?]*} $selectorPath] ||
       [string match {*\[*} $selectorPath] ||
@@ -141,7 +121,6 @@ proc gophers::ReadSelector {sock} {
 
 # TODO: report better errors in case handler returns an error
 proc gophers::HandleSelector {sock selector} {
-  variable interp
   set handler [router::getHandler $selector]
   if {$handler ne {}} {
     # TODO: Better safer way of doing this?
@@ -168,7 +147,6 @@ proc gophers::ReadFile {filename} {
   # TODO: put filename handling code into a separate function
   set filename [string trimleft $filename "."]
   set nativeFilename [file normalize $filename]
-  set nativeFilename [file join $gophers::rootDir $nativeFilename]
   set fd [open $nativeFilename]
   set data [read $fd]
   close $fd

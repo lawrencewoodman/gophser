@@ -96,7 +96,9 @@ proc TestHelpers::startServer {configScript} {
   set t [thread::create -joinable {
     vwait configScript
     vwait repoRootDir
-    source [file join $repoRootDir gophers.tcl]
+    # Load the module
+    set modules [lsort -decreasing [glob -directory $repoRootDir gophers-*.tm]]
+    source [lindex $modules 0]
     eval $configScript
     set port 7070
     gophers::init $port
@@ -120,9 +122,9 @@ proc TestHelpers::shutdownServer {serverThread} {
 
 
 # rootRelativePath: how to get to root from script path
-proc TestHelpers::setRepoRootDir {rootRelativePath} {
+proc TestHelpers::setRepoRootDir {_repoRootDir} {
   variable repoRootDir
-  set repoRootDir [file normalize [file join [file dirname [info script]] $rootRelativePath]]
+  set repoRootDir $_repoRootDir
 }
 
 

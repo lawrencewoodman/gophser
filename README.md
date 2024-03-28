@@ -11,6 +11,13 @@ Requirements
 * Tcllib
 
 
+Build
+-----
+To build the module:
+
+    $ tclsh bin/build.tcl gophers.build
+
+
 Testing
 -------
 There is a testsuite in `tests/`.  To run it:

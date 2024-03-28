@@ -1,9 +1,14 @@
 package require tcltest
 namespace import tcltest::*
 
-source [file join [file dirname [info script]] test_helpers.tcl]
-TestHelpers::setRepoRootDir {..}
-source [file join [TestHelpers::getRepoRootDir] menu.tcl]
+apply {{} {
+  set thisScriptDir [file dirname [info script]]
+  set moduleDir [file normalize [file join $thisScriptDir ..]]
+  set modules [lsort -decreasing [glob -directory $moduleDir gophers-*.tm]]
+  source [lindex $modules 0]
+  source [file join $thisScriptDir test_helpers.tcl]
+  TestHelpers::setRepoRootDir $moduleDir
+}}
 
 
 test render-1 {Check render adds correct .<cr><lf> ending to menu} \

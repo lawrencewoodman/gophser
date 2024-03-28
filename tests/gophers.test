@@ -1,9 +1,14 @@
 package require tcltest
 namespace import tcltest::*
 
-source [file join [file dirname [info script]] test_helpers.tcl]
-TestHelpers::setRepoRootDir {..}
-source [file join [TestHelpers::getRepoRootDir] gophers.tcl]
+apply {{} {
+  set thisScriptDir [file dirname [info script]]
+  set moduleDir [file normalize [file join $thisScriptDir ..]]
+  set modules [lsort -decreasing [glob -directory $moduleDir gophers-*.tm]]
+  source [lindex $modules 0]
+  source [file join $thisScriptDir test_helpers.tcl]
+  TestHelpers::setRepoRootDir $moduleDir
+}}
 
 
 #TODO: Test thoroughly selector input using different line endings
@@ -119,8 +124,8 @@ test mount-4 {Returns error if localDir doesn't exist} \
 
 test mount-5 {Returns error if localDir isn't a directory} \
 -body {
-  gophers::mount [file join [TestHelpers::getRepoRootDir] gophers.tcl] "/"
-} -returnCodes {error} -result "local directory isn't a directory: [file join [TestHelpers::getRepoRootDir] gophers.tcl]"
+  gophers::mount [file join [TestHelpers::getRepoRootDir] lib gophers.tcl] "/"
+} -returnCodes {error} -result "local directory isn't a directory: [file join [TestHelpers::getRepoRootDir] lib gophers.tcl]"
 
 
 cleanupTests
