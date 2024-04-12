@@ -11,14 +11,14 @@
 
 
 # TODO: Think about name format and rename file?
-namespace eval gophers::router {
+namespace eval gophser::router {
   namespace export {[a-z]*}
   variable routes {}
 }
 
 # TODO: Restrict pattern and make safe
 # TODO: Sort routes after adding from most specific to most general
-proc gophers::router::route {pattern handlerName} {
+proc gophser::router::route {pattern handlerName} {
   variable routes
   lappend routes [list $pattern $handlerName]
   Sort
@@ -28,7 +28,7 @@ proc gophers::router::route {pattern handlerName} {
 # TODO: rename
 # TODO: Assumes selector is safe at this point?
 # Perhaps use namespace to determine whether input has been checked
-proc gophers::router::getHandler {selector} {
+proc gophser::router::getHandler {selector} {
   variable routes
   set selector [safeSelector $selector]
   foreach route $routes {
@@ -49,7 +49,7 @@ proc gophers::router::getHandler {selector} {
 # Resolves .. without going past root of path
 # Removes . directory element
 # Supports directory elements beginning with ~
-proc gophers::router::safeSelector {selectorPath} {
+proc gophser::router::safeSelector {selectorPath} {
   set selectorPath [string map {" " "%20"} $selectorPath]
   set elements [file split $selectorPath]
   set newSelectorPath [list]
@@ -68,14 +68,14 @@ proc gophers::router::safeSelector {selectorPath} {
 
 
 # Sort the routes from most specific to least specific
-proc gophers::router::Sort {} {
+proc gophser::router::Sort {} {
   variable routes
   set routes [lsort -command CompareRoutes $routes]
 }
 
 
 # Compare the routes for lsort to determine which is most specific
-proc gophers::router::CompareRoutes {a b} {
+proc gophser::router::CompareRoutes {a b} {
   set patternPartsA [file split [lindex $a 0]]
   set patternPartsB [file split [lindex $b 0]]
   foreach partA $patternPartsA partB $patternPartsB {

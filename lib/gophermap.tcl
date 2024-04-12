@@ -8,7 +8,7 @@
 #
 
 
-namespace eval gophers::gophermap {
+namespace eval gophser::gophermap {
   namespace export {[a-z]*}
 
   variable menu  
@@ -18,7 +18,7 @@ namespace eval gophers::gophermap {
 }
 
 
-proc gophers::gophermap::process {
+proc gophser::gophermap::process {
   _menu _files localDir selectorRootPath selectorSubPath
 } {
   variable menu
@@ -31,9 +31,9 @@ proc gophers::gophermap::process {
 
   set interp [interp create -safe]
   $interp eval {unset {*}[info vars]}
-  $interp alias menu ::gophers::gophermap::Menu
-  $interp alias describe ::gophers::gophermap::Describe
-  $interp alias listFiles ::gophers::gophermap::ListFiles $localDir $selectorRootPath $selectorSubPath
+  $interp alias menu ::gophser::gophermap::Menu
+  $interp alias describe ::gophser::gophermap::Describe
+  $interp alias listFiles ::gophser::gophermap::ListFiles $localDir $selectorRootPath $selectorSubPath
   set gophermapPath [file join $localDir $selectorSubPath gophermap]
   if {[catch {$interp invokehidden source $gophermapPath}]} {
     error "error processing: $gophermapPath, for selector: [file join $selectorRootPath $selectorSubPath], $::errorInfo"
@@ -42,12 +42,12 @@ proc gophers::gophermap::process {
 }
 
 
-proc gophers::gophermap::Menu {command args} {
+proc gophser::gophermap::Menu {command args} {
   variable menu
   switch -- $command {
     item {
       # TODO: ensure can only include files in the current location?
-      set menu [::gophers::menu::item $menu {*}$args]
+      set menu [::gophser::menu::item $menu {*}$args]
     }
     default {
       return -code error "menu: invalid command: $command"
@@ -57,18 +57,18 @@ proc gophers::gophermap::Menu {command args} {
 
 
 # TODO: Be able to add extra info next to filename such as size and date
-proc gophers::gophermap::Describe {filename description} {
+proc gophser::gophermap::Describe {filename description} {
   variable descriptions
   dict set descriptions $filename $description
 }
 
 
-proc gophers::gophermap::ListFiles {localDir selectorRootPath selectorSubPath} {
+proc gophser::gophermap::ListFiles {localDir selectorRootPath selectorSubPath} {
   variable menu
   variable files
   variable descriptions
   
-  set menu [::gophers::ListDir -nogophermap -files $files \
+  set menu [::gophser::ListDir -nogophermap -files $files \
                                -descriptions $descriptions \
                                $menu $localDir \
                                $selectorRootPath $selectorSubPath]

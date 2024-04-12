@@ -5,7 +5,7 @@
 # Licensed under an MIT licence.  Please see LICENCE.md for details.
 #
 
-namespace eval gophers {
+namespace eval gophser {
   namespace export {[a-z]*}
 
   # TODO: Rename listen

@@ -1,7 +1,7 @@
 apply {{} {
   set thisScriptDir [file dirname [info script]]
   set moduleDir [file normalize [file join $thisScriptDir .. ..]]
-  set modules [lsort -decreasing [glob -directory $moduleDir gophers-*.tm]]
+  set modules [lsort -decreasing [glob -directory $moduleDir gophser-*.tm]]
   source [lindex $modules 0]
   source [file join $moduleDir tests test_helpers.tcl]
   TestHelpers::setRepoRootDir $moduleDir
@@ -49,7 +49,7 @@ proc outputStats {selectors timings} {
 
 set configScript {
   proc sendWord {selector} {
-    set word [gophers::stripSelectorPrefix "/say" $selector]
+    set word [gophser::stripSelectorPrefix "/say" $selector]
     return [list text [string map {"%20" " "} $word]]
   }
 
@@ -66,10 +66,10 @@ set configScript {
   }
 
   set bigStr [makeBigStr]
-  gophers::log suppress all
-  gophers::route "/bigfile" [list sendBigFile $bigStr]
-  gophers::route "/say/*" sendWord
-  gophers::mount [file normalize $repoRootDir] "/"
+  gophser::log suppress all
+  gophser::route "/bigfile" [list sendBigFile $bigStr]
+  gophser::route "/say/*" sendWord
+  gophser::mount [file normalize $repoRootDir] "/"
 }
 
 

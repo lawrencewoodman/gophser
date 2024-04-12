@@ -97,14 +97,14 @@ proc TestHelpers::startServer {configScript} {
     vwait configScript
     vwait repoRootDir
     # Load the module
-    set modules [lsort -decreasing [glob -directory $repoRootDir gophers-*.tm]]
+    set modules [lsort -decreasing [glob -directory $repoRootDir gophser-*.tm]]
     source [lindex $modules 0]
     eval $configScript
     set port 7070
-    gophers::init $port
+    gophser::init $port
     vwait isRunning
     vwait forever
-    gophers::shutdown
+    gophser::shutdown
   }]
   thread::send -async $t [list set configScript $configScript]
   thread::send -async $t [list set repoRootDir [getRepoRootDir]]

@@ -4,7 +4,7 @@ namespace import tcltest::*
 apply {{} {
   set thisScriptDir [file dirname [info script]]
   set moduleDir [file normalize [file join $thisScriptDir ..]]
-  set modules [lsort -decreasing [glob -directory $moduleDir gophers-*.tm]]
+  set modules [lsort -decreasing [glob -directory $moduleDir gophser-*.tm]]
   source [lindex $modules 0]
   source [file join $thisScriptDir test_helpers.tcl]
   TestHelpers::setRepoRootDir $moduleDir
@@ -12,17 +12,17 @@ apply {{} {
 
 
 # Create the routes to test against
-gophers::router::route "/files" testFiles
-gophers::router::route "/files/*" testFilesSplat
-gophers::router::route "/" testRoot
-gophers::router::route "/*/*" testDirFilename
+gophser::router::route "/files" testFiles
+gophser::router::route "/files/*" testFilesSplat
+gophser::router::route "/" testRoot
+gophser::router::route "/*/*" testDirFilename
 
 
 test getHandler-1 {Return false if route not found} \
 -setup {
   set selector "bob"
 } -body {
-  gophers::router::getHandler $selector
+  gophser::router::getHandler $selector
 } -result {}
 
 
@@ -30,7 +30,7 @@ test getHandler-2 {Detect an empty pattern for the root} \
 -setup {
   set selector ""
 } -body {
-  gophers::router::getHandler $selector
+  gophser::router::getHandler $selector
 } -result testRoot
 
 
@@ -38,7 +38,7 @@ test getHandler-3 {Detect an empty pattern for the root with a trailing slash} \
 -setup {
   set selector {/}
 } -body {
-  gophers::router::getHandler $selector
+  gophser::router::getHandler $selector
 } -result testRoot
 
 
@@ -46,7 +46,7 @@ test getHandler-4 {Detect a single splat on its own} \
 -setup {
   set selector {/files/fred.txt}
 } -body {
-  gophers::router::getHandler $selector
+  gophser::router::getHandler $selector
 } -result testFilesSplat
 
 
@@ -54,7 +54,7 @@ test getHandler-5 {Detect a single splat on its own against multiple sub-directo
 -setup {
   set selector {/files/something/bob.txt}
 } -body {
-  gophers::router::getHandler $selector
+  gophser::router::getHandler $selector
 } -result testFilesSplat
 
 
@@ -62,7 +62,7 @@ test getHandler-6 {Detect named parameters} \
 -setup {
   set selector {/dirA/someFile.txt}
 } -body {
-  gophers::router::getHandler $selector
+  gophser::router::getHandler $selector
 } -result testDirFilename
 
 
@@ -70,7 +70,7 @@ test getHandler-7 {Detect exact path} \
 -setup {
   set selector {/files}
 } -body {
-  gophers::router::getHandler $selector
+  gophser::router::getHandler $selector
 } -result testFiles
 
 
@@ -78,7 +78,7 @@ test getHandler-8 {Detect exact path with trailing slash} \
 -setup {
   set selector {/files/}
 } -body {
-  gophers::router::getHandler $selector
+  gophser::router::getHandler $selector
 } -result testFiles
 
 
@@ -98,7 +98,7 @@ test safeSelector-1 {} \
 } -body {
   set res {}
   foreach selector $selectors {
-    lappend res [gophers::router::safeSelector $selector]
+    lappend res [gophser::router::safeSelector $selector]
   }
   set res
 } -result [list /tests /fred/bob/dave /fred / /gerald /~fred \

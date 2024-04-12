@@ -1,7 +1,0 @@
-# Config file to build module
-# Used by bin/build.tcl
-
-name gophers
-version 0.1
-summary {A gopher server module}
-files {lib/*.tcl}

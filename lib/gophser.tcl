@@ -6,12 +6,12 @@
 #
 
 
-proc gophers::init {port} {
+proc gophser::init {port} {
   variable listen
-  set listen [socket -server gophers::ClientConnect $port]
+  set listen [socket -server ::gophser::ClientConnect $port]
 }
 
-proc gophers::shutdown {} {
+proc gophser::shutdown {} {
   variable listen
   catch {close $listen}
 }
@@ -19,7 +19,7 @@ proc gophers::shutdown {} {
 
 # localDir: The local absolute directory path
 # selectorPath: The path for the selector which must not contain wildcards
-proc gophers::mount {localDir selectorPath} {
+proc gophser::mount {localDir selectorPath} {
   set localDir [string trim $localDir]
 
   if {$localDir eq ""} {
@@ -52,22 +52,27 @@ proc gophers::mount {localDir selectorPath} {
     return -code error "local directory isn't a directory: $localDir"
   }
 
-  router::route $selectorPathGlob [list gophers::ServePath $localDir $selectorPath]
+  router::route $selectorPathGlob [list gophser::ServePath $localDir $selectorPath]
 }
 
 
 # TODO: Rename
 # TODO: make pattern safe
-proc gophers::route {pattern handlerName} {
+proc gophser::route {pattern handlerName} {
   router::route $pattern $handlerName
 }
 
 
 # TODO: Consider basing off log tcllib package
-proc gophers::log {command args} {
+proc gophser::log {command args} {
   variable configOptions
   # TODO: Think about what to use for reporting (info?)
   switch -- $command {
+    error {
+      if {[dict get $configOptions logger suppress] ne "all"} {
+        puts "Error:    [lindex $args 0]"
+      }
+    }
     info {
       if {[dict get $configOptions logger suppress] ne "all"} {
         puts "Info:    [lindex $args 0]"
@@ -89,38 +94,43 @@ proc gophers::log {command args} {
 }
 
 
-proc gophers::ClientConnect {sock host port} {
+proc gophser::ClientConnect {sock host port} {
   variable configOptions
   variable sendStatus
   chan configure $sock -buffering line -blocking 0 -translation {auto binary}
   dict set sendStatus $sock "waiting"
-  chan event $sock readable [list gophers::ReadSelector $sock]
-  chan event $sock writable [list ::gophers::SendTextWhenWritable $sock]
+  chan event $sock readable [list ::gophser::ReadSelector $sock]
+  chan event $sock writable [list ::gophser::SendTextWhenWritable $sock]
 
   log info "connection from $host:$port"
 }
 
 
 # TODO: Handle client sending too much data
-proc gophers::ReadSelector {sock} {
+proc gophser::ReadSelector {sock} {
   variable sendStatus
   if {[catch {gets $sock selector} len] || [eof $sock]} {
       catch {close $sock}
   } elseif {$len >= 0} {
-    set selector [router::safeSelector $selector]
-    if {![gophers::HandleSelector $sock $selector]} {
-      log warning "selector not found: $selector"
-      gophers::SendError $sock "path not found"
+    set isErr [catch {
+      set selector [router::safeSelector $selector]
+      if {![HandleSelector $sock $selector]} {
+        log warning "selector not found: $selector"
+        SendError $sock "path not found"
+      }
+      dict set sendStatus $sock "done"
+      # TODO: set routine to tidy up sendDones, etc that have been around for
+      # TODO: a while
+    } err]
+    if {$isErr} {
+      log error $err
     }
-    dict set sendStatus $sock "done"
-    # TODO: set routine to tidy up sendDones, etc that have been around for
-    # TODO: a while
   }
 }
 
 
 # TODO: report better errors in case handler returns an error
-proc gophers::HandleSelector {sock selector} {
+proc gophser::HandleSelector {sock selector} {
   set handler [router::getHandler $selector]
   if {$handler ne {}} {
     # TODO: Better safer way of doing this?
@@ -130,6 +140,9 @@ proc gophers::HandleSelector {sock selector} {
     switch -- $type {
       text {
         SendText $sock $value
+      }
+      error {
+        SendError $sock $value
       }
       default {
         error "unknown type: $type"
@@ -143,7 +156,7 @@ proc gophers::HandleSelector {sock selector} {
 
 # TODO: Be careful file isn't too big and reduce transmission rate if big and under heavy load
 # TODO: Catch errors
-proc gophers::ReadFile {filename} {
+proc gophser::ReadFile {filename} {
   # TODO: put filename handling code into a separate function
   set filename [string trimleft $filename "."]
   set nativeFilename [file normalize $filename]
@@ -157,7 +170,7 @@ proc gophers::ReadFile {filename} {
 # To be called by writable event to send text when sock is writable
 # This will break the text into 10k chunks to help if we have multiple
 # slow connections.
-proc gophers::SendTextWhenWritable {sock} {
+proc gophser::SendTextWhenWritable {sock} {
   variable sendMsgs
   variable sendStatus
   if {[dict get $sendStatus $sock] eq "waiting"} {
@@ -187,7 +200,7 @@ proc gophers::SendTextWhenWritable {sock} {
 
 
 # TODO: Have another one for sendBinary?
-proc gophers::SendText {sock msg} {
+proc gophser::SendText {sock msg} {
   variable sendMsgs
   variable sendStatus
   # TODO: Make sendMsgs a list so can send multiple messages?
@@ -197,8 +210,8 @@ proc gophers::SendText {sock msg} {
 
 
 # TODO: Turn any tabs in message to % notation
-proc gophers::SendError {sock msg} {
-  gophers::SendText $sock "3$msg\tFAKE\t(NULL)\t0"
+proc gophser::SendError {sock msg} {
+  SendText $sock "3$msg\tFAKE\t(NULL)\t0"
   dict set sendStatus $sock "done"
 }
 
@@ -206,7 +219,8 @@ proc gophers::SendError {sock msg} {
 # Remove the prefix from the selectorPath
 # This is useful to remove mount points and to access variables
 # passed in the selector path.
-proc gophers::stripSelectorPrefix {prefixPath selectorPath} {
+# TODO: Should this be exported?
+proc gophser::stripSelectorPrefix {prefixPath selectorPath} {
   set prefixPathParts [file split $prefixPath]
   set pathParts [file split $selectorPath]
   set compPathParts [lrange $pathParts 0 [llength $prefixPathParts]-1]
@@ -215,25 +229,28 @@ proc gophers::stripSelectorPrefix {prefixPath selectorPath} {
       error "selector: $selectorPath does not contain prefix: $prefixPath"
     }
   }
+  if {[llength $pathParts] <= [llength $prefixPathParts]} {
+    return ""
+  }
   return [file join {*}[lrange $pathParts [llength $prefixPathParts] end]]
 }
 
 
 # TODO: Do we need selectorPath?
 # selectorMountPath is the path that localDir resides in the selector hierarchy
-proc gophers::ServePath {localDir selectorMountPath selectorPath} {
+proc gophser::ServePath {localDir selectorMountPath selectorPath} {
   set selectorSubPath [stripSelectorPrefix $selectorMountPath $selectorPath]
   set path [file join $localDir $selectorSubPath]
 
   if {![file exists $path]} {
     log warning "local path doesn't exist: $path for selector: $selectorPath"
-    SendError "path not found"
+    return [list error "path not found"]
   }
 
   set pathPermissions [file attributes $path -permissions]
   if {($pathPermissions & 4) != 4} {
     log warning "local path isn't world readable: $path for selector: $selectorPath"
-    SendError "path not found"
+    return [list error "path not found"]
   }
 
   # TODO: make path joining safe and check world readable
@@ -242,12 +259,12 @@ proc gophers::ServePath {localDir selectorMountPath selectorPath} {
     # TODO: Don't allow gophermap to be downloaded
     return [list text [ReadFile $path]]
   } elseif {[file isdirectory $path]} {
-    lassign [gophers::cache get $selectorPath] inCache menuText
+    lassign [cache get $selectorPath] inCache menuText
     if {!$inCache} {
       set menu [menu create localhost 7070]
       set menu [ListDir $menu $localDir $selectorMountPath $selectorSubPath]
       set menuText [menu render $menu]
-      gophers::cache put $selectorPath $menuText
+      cache put $selectorPath $menuText
     }
     return [list text $menuText]
   }
@@ -264,7 +281,7 @@ proc gophers::ServePath {localDir selectorMountPath selectorPath} {
 # TODO: Rename -files to -filenames?
 # TODO: Make this safer and suitable for running as master command from interpreter
 # TODO: Restrict directories and look at permissions (world readable?)
-proc gophers::ListDir {args} {
+proc gophser::ListDir {args} {
   array set options {}
   while {[llength $args]} {
     switch -glob -- [lindex $args 0] {

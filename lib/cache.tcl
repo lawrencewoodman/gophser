@@ -5,7 +5,7 @@
 # Licensed under an MIT licence.  Please see LICENCE.md for details.
 #
 
-namespace eval gophers::cache {
+namespace eval gophser::cache {
   namespace export {[a-z]*}
   namespace ensemble create
   variable store [dict create]
@@ -14,14 +14,14 @@ namespace eval gophers::cache {
 
 
 # Put data for selectorPath in the cache
-proc gophers::cache::put {selectorPath data} {
+proc gophser::cache::put {selectorPath data} {
   variable store
   dict set store $selectorPath [list [clock seconds] $data]
 }
 
 
 # Return: {exists data}
-proc gophers::cache::get {selectorPath} {
+proc gophser::cache::get {selectorPath} {
   variable store
   variable cleanTime
   
@@ -39,7 +39,7 @@ proc gophers::cache::get {selectorPath} {
 
 
 # Remove any cache entries older than 60 seconds
-proc gophers::cache::Clean {} {
+proc gophser::cache::Clean {} {
   variable store
   variable cleanTime
   set cleanTime [clock seconds]

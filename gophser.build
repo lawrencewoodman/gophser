@@ -1,0 +1,7 @@
+# Config file to build module
+# Used by buildtm
+
+name gophser
+version 0.1
+description {A gopher server module}
+files {lib/*.tcl}

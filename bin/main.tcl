@@ -7,17 +7,17 @@
 # Licensed under an MIT licence.  Please see LICENCE.md for details.
 #
 
-source "gophers.tcl"
+package require gophser
 
 proc main {params} {
   set port 7070
   set thisScriptDir [file dirname [info script]]
   set repoRootDir [file join $thisScriptDir ..]
-  gophers::route "/say/{word}" sendWord
-  gophers::mount [file normalize $repoRootDir] "/"
-  gophers::init $port 
+  gophser::route "/say/{word}" sendWord
+  gophser::mount [file normalize $repoRootDir] "/"
+  gophser::init $port
   vwait forever
-  gophers::shutdown
+  gophser::shutdown
 }
 
 

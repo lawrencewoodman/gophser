@@ -6,13 +6,13 @@
 #
 package require textutil
 
-namespace eval gophers::menu {
+namespace eval gophser::menu {
   namespace export {[a-z]*}
   namespace ensemble create
 }
 
 
-proc gophers::menu::create {{defaultHost localhost} {defaultPort 70} } {
+proc gophser::menu::create {{defaultHost localhost} {defaultPort 70} } {
   set defaults [dict create hostname $defaultHost port $defaultPort]
   dict create defaults $defaults menu {}
 }
@@ -21,14 +21,14 @@ proc gophers::menu::create {{defaultHost localhost} {defaultPort 70} } {
 # Add information text
 # The text will be wrapped if the line length exceeds 80 characters
 # TODO: Work out what length to set this to wrap
-proc gophers::menu::info {menu text} {
+proc gophser::menu::info {menu text} {
   item $menu info $text FAKE
 }
 
 
 # Add an item to the menu
 # Returns a menu with the item added
-proc gophers::menu::item {menu itemType userName selector {hostname {}} {port {}}} {
+proc gophser::menu::item {menu itemType userName selector {hostname {}} {port {}}} {
   if {$hostname eq {}} {
     set hostname [dict get $menu defaults hostname]
   }
@@ -70,7 +70,7 @@ proc gophers::menu::item {menu itemType userName selector {hostname {}} {port {}
 
 
 # Render the menu as text ready for sending
-proc gophers::menu::render {menu} {
+proc gophser::menu::render {menu} {
   set menuStr ""
   foreach item [dict get $menu menu] {
     lassign $item type userName selector hostname port
