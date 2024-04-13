@@ -1,7 +1,8 @@
 # gophser v0.1
 # A gopher server module
-# Created using buildtm.
-# Changes should be made to source files not this file.
+#
+# Created using buildtm
+# Changes should be made to source files not this file
 
 # Gopher Server Module
 #
