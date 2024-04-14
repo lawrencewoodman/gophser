@@ -6,6 +6,7 @@ will wrap the text}
 describe docs.txt {Did you know that there is some interesting information
 in some documentation}
 
-menu item text "README.md - find all about this directory" README.md
+menu text "README.md - find all about this directory" README.md
+menu menu "The example.com site" "/" example.com
 
 listFiles

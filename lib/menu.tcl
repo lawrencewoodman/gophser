@@ -36,6 +36,7 @@ proc gophser::menu::item {menu itemType userName selector {hostname {}} {port {}
     set port [dict get $menu defaults port]
   }
 
+  # TODO: Handle if menu selector is blank should it be "/"?
   switch -- $itemType {
     text -
     0 {set itemType 0}

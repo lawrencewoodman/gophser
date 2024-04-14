@@ -7,7 +7,6 @@ apply {{} {
   set modules [lsort -decreasing [glob -directory $moduleDir gophser-*.tm]]
   source [lindex $modules 0]
   source [file join $thisScriptDir test_helpers.tcl]
-  TestHelpers::setRepoRootDir $moduleDir
 }}
 
 

@@ -1,0 +1,27 @@
+package require tcltest
+namespace import tcltest::*
+
+apply {{} {
+  set thisScriptDir [file dirname [info script]]
+  set moduleDir [file normalize [file join $thisScriptDir ..]]
+  set modules [lsort -decreasing [glob -directory $moduleDir gophser-*.tm]]
+  source [lindex $modules 0]
+  source [file join $thisScriptDir test_helpers.tcl]
+  TestHelpers::setRepoRootDir $moduleDir
+}}
+
+
+test process-1 {Check render adds correct .<cr><lf> ending to menu} \
+-setup {
+  set m [gophser::menu create]
+  set fixturesDir [file join [TestHelpers::getRepoRootDir] tests fixtures]
+} -body {
+  set m [gophser::gophermap::process $m {} $fixturesDir "/" ""]
+  gophser::menu render $m
+} -result [string cat \
+  "0README.md - find all about this directory\x09README.md\x09localhost\x0970\r\n" \
+  "1The example.com site\x09/\x09example.com\x0970\r\n" \
+  ".\r\n"]
+
+
+cleanupTests

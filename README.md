@@ -20,6 +20,7 @@ Requirements
 
 Build
 -----
+The source code for the module is in `lib/`.
 To build the module use [buildtm](https://github.com/lawrencewoodman/buildtm).
 
     $ tclsh buildtm.tcl gophser.build

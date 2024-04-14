@@ -29,6 +29,7 @@ test init-1 {Check can read menu from server when no gophermap} \
 } -result [string cat \
   "0all.tcl\t/tests/all.tcl\tlocalhost\t7070\r\n" \
   "1fixtures\t/tests/fixtures\tlocalhost\t7070\r\n" \
+  "0gophermap.test\x09/tests/gophermap.test\x09localhost\x097070\r\n" \
   "0gophser.test\t/tests/gophser.test\tlocalhost\t7070\r\n" \
   "0menu.test\t/tests/menu.test\tlocalhost\t7070\r\n" \
   "0router.test\t/tests/router.test\tlocalhost\t7070\r\n" \
@@ -50,6 +51,7 @@ test init-2 {Check gophermap is processed in a directory} \
   TestHelpers::shutdownServer $serverThread]
 } -result [string cat \
   "0README.md - find all about this directory\tREADME.md\tlocalhost\t7070\r\n" \
+  "1The example.com site\x09/\x09example.com\x097070\r\n" \
   "0README.md\t/tests/fixtures/README.md\tlocalhost\t7070\r\n" \
   "i\tFAKE\tlocalhost\t7070\r\n" \
   "0docs.txt\t/tests/fixtures/docs.txt\tlocalhost\t7070\r\n" \
@@ -77,6 +79,7 @@ test init-3 {Check can mount somewhere other than root} \
 } -result [string cat \
   "0all.tcl\t/bob/tests/all.tcl\tlocalhost\t7070\r\n" \
   "1fixtures\t/bob/tests/fixtures\tlocalhost\t7070\r\n" \
+  "0gophermap.test\x09/bob/tests/gophermap.test\x09localhost\x097070\r\n" \
   "0gophser.test\t/bob/tests/gophser.test\tlocalhost\t7070\r\n" \
   "0menu.test\t/bob/tests/menu.test\tlocalhost\t7070\r\n" \
   "0router.test\t/bob/tests/router.test\tlocalhost\t7070\r\n" \
@@ -98,6 +101,7 @@ test init-4 {Check can read menu from server when selector is "/"} \
   TestHelpers::shutdownServer $serverThread]
 } -result [string cat \
   "0README.md - find all about this directory\tREADME.md\tlocalhost\t7070\r\n" \
+  "1The example.com site\x09/\x09example.com\x097070\r\n" \
   "0README.md\t/README.md\tlocalhost\t7070\r\n" \
   "i\tFAKE\tlocalhost\t7070\r\n" \
   "0docs.txt\t/docs.txt\tlocalhost\t7070\r\n" \
@@ -124,6 +128,7 @@ test init-5 {Check can read menu from server when selector is ""} \
   TestHelpers::shutdownServer $serverThread]
 } -result [string cat \
   "0README.md - find all about this directory\tREADME.md\tlocalhost\t7070\r\n" \
+  "1The example.com site\x09/\x09example.com\x097070\r\n" \
   "0README.md\t/README.md\tlocalhost\t7070\r\n" \
   "i\tFAKE\tlocalhost\t7070\r\n" \
   "0docs.txt\t/docs.txt\tlocalhost\t7070\r\n" \

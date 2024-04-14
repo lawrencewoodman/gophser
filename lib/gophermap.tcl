@@ -11,7 +11,7 @@
 namespace eval gophser::gophermap {
   namespace export {[a-z]*}
 
-  variable menu  
+  variable menu
   # Sorted list of files found in the same directory as the gophermap
   variable files
   variable descriptions
@@ -33,6 +33,7 @@ proc gophser::gophermap::process {
   $interp eval {unset {*}[info vars]}
   $interp alias menu ::gophser::gophermap::Menu
   $interp alias describe ::gophser::gophermap::Describe
+  # TODO: listFiles or listDir?
   $interp alias listFiles ::gophser::gophermap::ListFiles $localDir $selectorRootPath $selectorSubPath
   set gophermapPath [file join $localDir $selectorSubPath gophermap]
   if {[catch {$interp invokehidden source $gophermapPath}]} {
@@ -45,9 +46,16 @@ proc gophser::gophermap::process {
 proc gophser::gophermap::Menu {command args} {
   variable menu
   switch -- $command {
-    item {
+    info {
+      set menu [::gophser::menu::info $menu {*}$args]
+    }
+    text {
       # TODO: ensure can only include files in the current location?
-      set menu [::gophser::menu::item $menu {*}$args]
+      set menu [::gophser::menu::item $menu text {*}$args]
+    }
+    menu {
+      # TODO: ensure can only include files in the current location?
+      set menu [::gophser::menu::item $menu menu {*}$args]
     }
     default {
       return -code error "menu: invalid command: $command"
@@ -67,7 +75,7 @@ proc gophser::gophermap::ListFiles {localDir selectorRootPath selectorSubPath} {
   variable menu
   variable files
   variable descriptions
-  
+
   set menu [::gophser::ListDir -nogophermap -files $files \
                                -descriptions $descriptions \
                                $menu $localDir \

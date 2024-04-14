@@ -28,7 +28,7 @@ proc gophser::mount {localDir selectorPath} {
   if {[string index $localDir 0] ne "/"} {
     return -code error "can not mount relative directories: $localDir"
   }
-  
+
   set localDir [file normalize $localDir]
 
   if {[string match {*[*?]*} $selectorPath] ||
@@ -176,7 +176,7 @@ proc gophser::SendTextWhenWritable {sock} {
   if {[dict get $sendStatus $sock] eq "waiting"} {
     return
   }
-  
+
   set msg [dict get $sendMsgs $sock]
   if {[string length $msg] == 0} {
     if {[dict get $sendStatus $sock] eq "done"} {
