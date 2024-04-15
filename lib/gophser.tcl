@@ -257,12 +257,19 @@ proc gophser::ServePath {localDir selectorMountPath selectorPath} {
 
   if {[file isfile $path]} {
     # TODO: Don't allow gophermap to be downloaded
+    # TODO: Support caching when file isn't too big
     return [list text [ReadFile $path]]
   } elseif {[file isdirectory $path]} {
     lassign [cache get $selectorPath] inCache menuText
     if {!$inCache} {
+      set selectorLocalPath [MakeSelectorLocalPath $localDir $selectorSubPath]
       set menu [menu create localhost 7070]
-      set menu [ListDir $menu $localDir $selectorMountPath $selectorSubPath]
+      # TODO: Rename gophermap
+      if {[file exists [file join $selectorLocalPath gophermap]]} {
+        set menu [gophermap::process $menu $localDir $selectorMountPath $selectorSubPath]
+      } else {
+        set menu [ListDir $menu $localDir $selectorMountPath $selectorSubPath]
+      }
       set menuText [menu render $menu]
       cache put $selectorPath $menuText
     }
@@ -272,55 +279,44 @@ proc gophser::ServePath {localDir selectorMountPath selectorPath} {
 }
 
 
+# TODO: Work out at what point the sub path is safe
+proc gophser::MakeSelectorLocalPath {localDir selectorSubPath} {
+  set localDir [string trimleft $localDir "."]
+  set localDir [file normalize $localDir]
+  return [file join $localDir $selectorSubPath]
+}
+
 
 # listDir ?switches? menu localDir selectorMountPath selectorSubPath
 # switches:
-#  -nogophermap      Don't process any gophermaps found
-#  -files files      Pass a list of filenames rather than glob them
+#  -descriptions descriptions  Dictionary of descriptions for each filename
 #
-# TODO: Rename -files to -filenames?
 # TODO: Make this safer and suitable for running as master command from interpreter
 # TODO: Restrict directories and look at permissions (world readable?)
 proc gophser::ListDir {args} {
   array set options {}
   while {[llength $args]} {
     switch -glob -- [lindex $args 0] {
-      -nogophermap {set args [lassign $args options(nogophermap)]}
-      -files {set args [lassign $args - options(files)]}
       -descriptions {set args [lassign $args - options(descriptions)]}
       --      {set args [lrange $args 1 end] ; break}
-      -*      {return -code error "listDir: unknown option: [lindex $args 0]"}
+      -*      {return -code error "unknown option: [lindex $args 0]"}
       default break
     }
   }
   if {[llength $args] != 4} {
-    return -code error "listDir: invalid number of arguments"
+    return -code error "invalid number of arguments"
   }
-  lassign $args menu localDir selectorMountPath selectorSubPath
-  set localDir [string trimleft $localDir "."]
-  set localDir [file normalize $localDir]
-  set selectorLocalDir [file join $localDir $selectorSubPath]
-  if {[info exists options(files)]} {
-    set files $options(files)
-  } else {
-    set files [glob -tails -directory $selectorLocalDir *]
-    set files [lsort $files]
-  }
-
-  # TODO: Rename gophermap
-  if {![info exists options(nogophermap)] &&
-       [file exists [file join $selectorLocalDir gophermap]]} {
-    # TODO: Handle exceptions
-    return [gophermap::process $menu $files $localDir $selectorMountPath $selectorSubPath]
-  }
-
   if {[info exists options(descriptions)]} {
     set descriptions $options(descriptions)
   } else {
     set descriptions [dict create]
   }
 
-  # List the directory without using a gophermap if not present or it fails
+  lassign $args menu localDir selectorMountPath selectorSubPath
+  set selectorLocalDir [MakeSelectorLocalPath $localDir $selectorSubPath]
+  set files [glob -tails -directory $selectorLocalDir *]
+  set files [lsort $files]
+
   set prevFileDescribed false   ; # This prevents a double proceeding new line
   foreach file $files {
     if {$file eq "gophermap"} {
@@ -336,7 +332,7 @@ proc gophser::ListDir {args} {
       set prevFileDescribed false
     }
 
-    set selector "[file join $selectorMountPath $selectorSubPath $file]"
+    set selector [file join $selectorMountPath $selectorSubPath $file]
     set nativeFile [file join $selectorLocalDir $file]
     if {[file isfile $nativeFile]} {
       set menu [menu item $menu text $file $selector]

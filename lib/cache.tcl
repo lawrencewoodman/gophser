@@ -16,6 +16,7 @@ namespace eval gophser::cache {
 # Put data for selectorPath in the cache
 proc gophser::cache::put {selectorPath data} {
   variable store
+  # TODO: Store expire time rather than curren time?
   dict set store $selectorPath [list [clock seconds] $data]
 }
 

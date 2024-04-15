@@ -12,32 +12,27 @@ namespace eval gophser::gophermap {
   namespace export {[a-z]*}
 
   variable menu
-  # Sorted list of files found in the same directory as the gophermap
-  variable files
   variable descriptions
 }
 
 
-proc gophser::gophermap::process {
-  _menu _files localDir selectorRootPath selectorSubPath
-} {
+proc gophser::gophermap::process {_menu localDir selectorMountPath selectorSubPath} {
   variable menu
-  variable files
   variable descriptions
 
   set menu $_menu
-  set files $_files
+  set selectorLocalDir [::gophser::MakeSelectorLocalPath $localDir $selectorSubPath]
   set descriptions [dict create]
 
   set interp [interp create -safe]
   $interp eval {unset {*}[info vars]}
   $interp alias menu ::gophser::gophermap::Menu
   $interp alias describe ::gophser::gophermap::Describe
-  # TODO: listFiles or listDir?
-  $interp alias listFiles ::gophser::gophermap::ListFiles $localDir $selectorRootPath $selectorSubPath
-  set gophermapPath [file join $localDir $selectorSubPath gophermap]
+  # TODO: listFiles or listDir or dir?
+  $interp alias listFiles ::gophser::gophermap::ListFiles $localDir $selectorMountPath $selectorSubPath
+  set gophermapPath [file join $selectorLocalDir gophermap]
   if {[catch {$interp invokehidden source $gophermapPath}]} {
-    error "error processing: $gophermapPath, for selector: [file join $selectorRootPath $selectorSubPath], $::errorInfo"
+    return -code error "error processing: $gophermapPath, for selector: [file join $selectorMountPath $selectorSubPath], $::errorInfo"
   }
   return $menu
 }
@@ -71,13 +66,11 @@ proc gophser::gophermap::Describe {filename description} {
 }
 
 
-proc gophser::gophermap::ListFiles {localDir selectorRootPath selectorSubPath} {
+proc gophser::gophermap::ListFiles {localDir selectorMountPath selectorSubPath} {
   variable menu
-  variable files
   variable descriptions
 
-  set menu [::gophser::ListDir -nogophermap -files $files \
-                               -descriptions $descriptions \
+  set menu [::gophser::ListDir -descriptions $descriptions \
                                $menu $localDir \
-                               $selectorRootPath $selectorSubPath]
+                               $selectorMountPath $selectorSubPath]
 }

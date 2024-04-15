@@ -23,3 +23,4 @@
 * Replace error statements as necessary
 * Reduce complication of router to simple mount points to a proc which takes
   care of the test
+* Make all sub namespaces Capitalized
