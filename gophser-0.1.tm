@@ -115,8 +115,7 @@ proc gophser::gophermap::process {_menu localDir selectorMountPath selectorSubPa
   $interp eval {unset {*}[info vars]}
   $interp alias menu ::gophser::gophermap::Menu
   $interp alias describe ::gophser::gophermap::Describe
-  # TODO: listFiles or listDir or dir?
-  $interp alias listFiles ::gophser::gophermap::ListFiles $localDir $selectorMountPath $selectorSubPath
+  $interp alias dir ::gophser::gophermap::ListFiles $localDir $selectorMountPath $selectorSubPath
   set gophermapPath [file join $selectorLocalDir gophermap]
   if {[catch {$interp invokehidden source $gophermapPath}]} {
     return -code error "error processing: $gophermapPath, for selector: [file join $selectorMountPath $selectorSubPath], $::errorInfo"

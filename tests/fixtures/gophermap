@@ -9,4 +9,4 @@ in some documentation}
 menu text "README.md - find all about this directory" README.md
 menu menu "The example.com site" "/" example.com
 
-listFiles
+dir
