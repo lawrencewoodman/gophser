@@ -54,12 +54,12 @@ test init-2 {Check gophermap is processed in a directory} \
   "1The example.com site\x09/\x09example.com\x097070\r\n" \
   "0README.md\t/tests/fixtures/README.md\tlocalhost\t7070\r\n" \
   "i\tFAKE\tlocalhost\t7070\r\n" \
-  "0docs.txt\t/tests/fixtures/docs.txt\tlocalhost\t7070\r\n" \
+  "0Documentation\t/tests/fixtures/docs.txt\tlocalhost\t7070\r\n" \
   "iDid you know that there is some interesting information in some documentation\tFAKE\tlocalhost\t7070\r\n" \
   "i\tFAKE\tlocalhost\t7070\r\n" \
   "0hello.txt\t/tests/fixtures/hello.txt\tlocalhost\t7070\r\n" \
-  "iThis is a description of hi.txt it is generated using the describe command and\tFAKE\tlocalhost\t7070\r\n" \
-  "ithis demonstrates how it will wrap the text\tFAKE\tlocalhost\t7070\r\n" \
+  "iThis is a description of hello.txt it is generated using the describe command\tFAKE\tlocalhost\t7070\r\n" \
+  "iand this demonstrates how it will wrap the text\tFAKE\tlocalhost\t7070\r\n" \
   "i\tFAKE\tlocalhost\t7070\r\n" \
   "0hi.txt\t/tests/fixtures/hi.txt\tlocalhost\t7070\r\n" \
   ".\r\n"]
@@ -104,12 +104,12 @@ test init-4 {Check can read menu from server when selector is "/"} \
   "1The example.com site\x09/\x09example.com\x097070\r\n" \
   "0README.md\t/README.md\tlocalhost\t7070\r\n" \
   "i\tFAKE\tlocalhost\t7070\r\n" \
-  "0docs.txt\t/docs.txt\tlocalhost\t7070\r\n" \
+  "0Documentation\t/docs.txt\tlocalhost\t7070\r\n" \
   "iDid you know that there is some interesting information in some documentation\tFAKE\tlocalhost\t7070\r\n" \
   "i\tFAKE\tlocalhost\t7070\r\n" \
   "0hello.txt\t/hello.txt\tlocalhost\t7070\r\n" \
-  "iThis is a description of hi.txt it is generated using the describe command and\tFAKE\tlocalhost\t7070\r\n" \
-  "ithis demonstrates how it will wrap the text\tFAKE\tlocalhost\t7070\r\n" \
+  "iThis is a description of hello.txt it is generated using the describe command\tFAKE\tlocalhost\t7070\r\n" \
+  "iand this demonstrates how it will wrap the text\tFAKE\tlocalhost\t7070\r\n" \
   "i\tFAKE\tlocalhost\t7070\r\n" \
   "0hi.txt\t/hi.txt\tlocalhost\t7070\r\n" \
   ".\r\n"]
@@ -131,12 +131,12 @@ test init-5 {Check can read menu from server when selector is ""} \
   "1The example.com site\x09/\x09example.com\x097070\r\n" \
   "0README.md\t/README.md\tlocalhost\t7070\r\n" \
   "i\tFAKE\tlocalhost\t7070\r\n" \
-  "0docs.txt\t/docs.txt\tlocalhost\t7070\r\n" \
+  "0Documentation\t/docs.txt\tlocalhost\t7070\r\n" \
   "iDid you know that there is some interesting information in some documentation\tFAKE\tlocalhost\t7070\r\n" \
   "i\tFAKE\tlocalhost\t7070\r\n" \
   "0hello.txt\t/hello.txt\tlocalhost\t7070\r\n" \
-  "iThis is a description of hi.txt it is generated using the describe command and\tFAKE\tlocalhost\t7070\r\n" \
-  "ithis demonstrates how it will wrap the text\tFAKE\tlocalhost\t7070\r\n" \
+  "iThis is a description of hello.txt it is generated using the describe command\tFAKE\tlocalhost\t7070\r\n" \
+  "iand this demonstrates how it will wrap the text\tFAKE\tlocalhost\t7070\r\n" \
   "i\tFAKE\tlocalhost\t7070\r\n" \
   "0hi.txt\t/hi.txt\tlocalhost\t7070\r\n" \
   ".\r\n"]

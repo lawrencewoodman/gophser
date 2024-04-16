@@ -334,16 +334,23 @@ proc gophser::ListDir {args} {
 
     set selector [file join $selectorMountPath $selectorSubPath $file]
     set nativeFile [file join $selectorLocalDir $file]
+    set userName $file
+    if {[dict exists $descriptions $file]} {
+      lassign [dict get $descriptions $file] userName
+    }
     if {[file isfile $nativeFile]} {
-      set menu [menu item $menu text $file $selector]
+      set menu [menu item $menu text $userName $selector]
     } elseif {[file isdirectory $nativeFile]} {
-      set menu [menu item $menu menu $file $selector]
+      set menu [menu item $menu menu $userName $selector]
     }
 
     # If a description exists then put it after the file
     if {[dict exists $descriptions $file]} {
-      set menu [menu info $menu [dict get $descriptions $file]]
-      set menu [menu info $menu ""]
+      lassign [dict get $descriptions $file] - description
+      if {$description ne ""} {
+        set menu [menu info $menu $description]
+        set menu [menu info $menu ""]
+      }
     }
   }
   return $menu

@@ -59,9 +59,10 @@ proc gophser::gophermap::Menu {command args} {
 
 
 # TODO: Be able to add extra info next to filename such as size and date
-proc gophser::gophermap::Describe {filename description} {
+proc gophser::gophermap::Describe {filename userName {description {}}} {
   variable descriptions
-  dict set descriptions $filename $description
+  if {$userName eq ""} {set userName $filename}
+  dict set descriptions $filename [list $userName $description]
 }
 
 

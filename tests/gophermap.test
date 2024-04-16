@@ -23,12 +23,12 @@ test process-1 {Check render adds correct .<cr><lf> ending to menu} \
   "1The example.com site\x09/\x09example.com\x0970\r\n" \
   "0README.md\t/README.md\tlocalhost\t70\r\n" \
   "i\tFAKE\tlocalhost\t70\r\n" \
-  "0docs.txt\t/docs.txt\tlocalhost\t70\r\n" \
+  "0Documentation\t/docs.txt\tlocalhost\t70\r\n" \
   "iDid you know that there is some interesting information in some documentation\tFAKE\tlocalhost\t70\r\n" \
   "i\tFAKE\tlocalhost\t70\r\n" \
   "0hello.txt\t/hello.txt\tlocalhost\t70\r\n" \
-  "iThis is a description of hi.txt it is generated using the describe command and\tFAKE\tlocalhost\t70\r\n" \
-  "ithis demonstrates how it will wrap the text\tFAKE\tlocalhost\t70\r\n" \
+  "iThis is a description of hello.txt it is generated using the describe command\tFAKE\tlocalhost\t70\r\n" \
+  "iand this demonstrates how it will wrap the text\tFAKE\tlocalhost\t70\r\n" \
   "i\tFAKE\tlocalhost\t70\r\n" \
   "0hi.txt\t/hi.txt\tlocalhost\t70\r\n" \
   ".\r\n"]

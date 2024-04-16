@@ -1,9 +1,9 @@
 
-describe hello.txt {This is a description of hi.txt
+describe hello.txt {} {This is a description of hello.txt
 it is generated using the describe command and this demonstrates how it
 will wrap the text}
 
-describe docs.txt {Did you know that there is some interesting information
+describe docs.txt {Documentation} {Did you know that there is some interesting information
 in some documentation}
 
 menu text "README.md - find all about this directory" README.md
