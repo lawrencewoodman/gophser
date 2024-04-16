@@ -315,17 +315,31 @@ proc gophser::ListDir {args} {
   lassign $args menu localDir selectorMountPath selectorSubPath
   set selectorLocalDir [MakeSelectorLocalPath $localDir $selectorSubPath]
   set files [glob -tails -directory $selectorLocalDir *]
-  set files [lsort $files]
+  set files [lsort -nocase $files]
+  set descriptons [dict create]
+
+  # TODO: Work out why dict for isn't preserving insertion order
+  # TODO: therefore forcing us to use foreach
+  foreach file $files {
+    if {[dict exists $descriptions $file]} {
+      lassign [dict get $descriptions $file] userName description
+    } else {
+      set userName $file
+      set description ""
+    }
+    dict set descriptions $file [list $userName $description]
+  }
 
   set prevFileDescribed false   ; # This prevents a double proceeding new line
   foreach file $files {
+    lassign [dict get $descriptions $file] userName description
     if {$file eq "gophermap"} {
       # Don't display the gophermap
       continue
     }
 
     # If a description exists then put a blank line before file
-    if {!$prevFileDescribed && [dict exists $descriptions $file]} {
+    if {!$prevFileDescribed && $description ne ""} {
       set menu [menu info $menu ""]
       set prevFileDescribed true
     } else {
@@ -334,10 +348,6 @@ proc gophser::ListDir {args} {
 
     set selector [file join $selectorMountPath $selectorSubPath $file]
     set nativeFile [file join $selectorLocalDir $file]
-    set userName $file
-    if {[dict exists $descriptions $file]} {
-      lassign [dict get $descriptions $file] userName
-    }
     if {[file isfile $nativeFile]} {
       set menu [menu item $menu text $userName $selector]
     } elseif {[file isdirectory $nativeFile]} {
@@ -345,12 +355,9 @@ proc gophser::ListDir {args} {
     }
 
     # If a description exists then put it after the file
-    if {[dict exists $descriptions $file]} {
-      lassign [dict get $descriptions $file] - description
-      if {$description ne ""} {
-        set menu [menu info $menu $description]
-        set menu [menu info $menu ""]
-      }
+    if {$description ne ""} {
+      set menu [menu info $menu $description]
+      set menu [menu info $menu ""]
     }
   }
   return $menu
