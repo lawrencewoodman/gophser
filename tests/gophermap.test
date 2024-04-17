@@ -11,6 +11,7 @@ apply {{} {
 }}
 
 
+# TODO: Don't refer to render and check for .<cr><lf> in menu
 test process-1 {Check render adds correct .<cr><lf> ending to menu} \
 -setup {
   set m [gophser::menu create]
@@ -21,6 +22,7 @@ test process-1 {Check render adds correct .<cr><lf> ending to menu} \
 } -result [string cat \
   "0README.md - find all about this directory\tREADME.md\tlocalhost\t70\r\n" \
   "1The example.com site\x09/\x09example.com\x0970\r\n" \
+  "1titles\t/titles\tlocalhost\t70\r\n" \
   "i\tFAKE\tlocalhost\t70\r\n" \
   "0Documentation\t/docs.txt\tlocalhost\t70\r\n" \
   "iDid you know that there is some interesting information in some documentation\tFAKE\tlocalhost\t70\r\n" \
@@ -31,6 +33,37 @@ test process-1 {Check render adds correct .<cr><lf> ending to menu} \
   "i\tFAKE\tlocalhost\t70\r\n" \
   "0hi.txt\t/hi.txt\tlocalhost\t70\r\n" \
   "0README.md\t/README.md\tlocalhost\t70\r\n" \
+  ".\r\n"]
+
+
+test process-2 {Check titles display properly} \
+-setup {
+  set m [gophser::menu create]
+  set fixturesDir [file join [TestHelpers::getRepoRootDir] tests fixtures titles]
+} -body {
+  set m [gophser::gophermap::process $m $fixturesDir "/" ""]
+  gophser::menu render $m
+} -result [string cat \
+  "i============================\tFAKE\tlocalhost\t70\r\n" \
+  "i= A Nice Big Size 1 Header =\tFAKE\tlocalhost\t70\r\n" \
+  "i============================\tFAKE\tlocalhost\t70\r\n" \
+  "i\tFAKE\tlocalhost\t70\r\n" \
+  "i=======\tFAKE\tlocalhost\t70\r\n" \
+  "i= Big =\tFAKE\tlocalhost\t70\r\n" \
+  "i=======\tFAKE\tlocalhost\t70\r\n" \
+  "i\tFAKE\tlocalhost\t70\r\n" \
+  "iA Medium Size 2 Header\tFAKE\tlocalhost\t70\r\n" \
+  "i======================\tFAKE\tlocalhost\t70\r\n" \
+  "i\tFAKE\tlocalhost\t70\r\n" \
+  "iMedium\tFAKE\tlocalhost\t70\r\n" \
+  "i======\tFAKE\tlocalhost\t70\r\n" \
+  "i\tFAKE\tlocalhost\t70\r\n" \
+  "iA Small Size 3 Header\tFAKE\tlocalhost\t70\r\n" \
+  "i---------------------\tFAKE\tlocalhost\t70\r\n" \
+  "i\tFAKE\tlocalhost\t70\r\n" \
+  "ismall\tFAKE\tlocalhost\t70\r\n" \
+  "i-----\tFAKE\tlocalhost\t70\r\n" \
+  "i\tFAKE\tlocalhost\t70\r\n" \
   ".\r\n"]
 
 

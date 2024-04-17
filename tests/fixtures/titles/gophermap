@@ -1,0 +1,8 @@
+header 1 {A Nice Big Size 1 Header}
+header 1 {Big}
+header 2 {A Medium Size 2 Header}
+header 2 {Medium}
+header 3 {A Small Size 3 Header}
+header 3 {small}
+
+# TODO: Test text too long

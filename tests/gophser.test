@@ -52,6 +52,7 @@ test init-2 {Check gophermap is processed in a directory} \
 } -result [string cat \
   "0README.md - find all about this directory\tREADME.md\tlocalhost\t7070\r\n" \
   "1The example.com site\x09/\x09example.com\x097070\r\n" \
+  "1titles\t/tests/fixtures/titles\tlocalhost\t7070\r\n" \
   "i\tFAKE\tlocalhost\t7070\r\n" \
   "0Documentation\t/tests/fixtures/docs.txt\tlocalhost\t7070\r\n" \
   "iDid you know that there is some interesting information in some documentation\tFAKE\tlocalhost\t7070\r\n" \
@@ -102,6 +103,7 @@ test init-4 {Check can read menu from server when selector is "/"} \
 } -result [string cat \
   "0README.md - find all about this directory\tREADME.md\tlocalhost\t7070\r\n" \
   "1The example.com site\x09/\x09example.com\x097070\r\n" \
+  "1titles\t/titles\tlocalhost\t7070\r\n" \
   "i\tFAKE\tlocalhost\t7070\r\n" \
   "0Documentation\t/docs.txt\tlocalhost\t7070\r\n" \
   "iDid you know that there is some interesting information in some documentation\tFAKE\tlocalhost\t7070\r\n" \
@@ -129,6 +131,7 @@ test init-5 {Check can read menu from server when selector is ""} \
 } -result [string cat \
   "0README.md - find all about this directory\tREADME.md\tlocalhost\t7070\r\n" \
   "1The example.com site\x09/\x09example.com\x097070\r\n" \
+  "1titles\t/titles\tlocalhost\t7070\r\n" \
   "i\tFAKE\tlocalhost\t7070\r\n" \
   "0Documentation\t/docs.txt\tlocalhost\t7070\r\n" \
   "iDid you know that there is some interesting information in some documentation\tFAKE\tlocalhost\t7070\r\n" \

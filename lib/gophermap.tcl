@@ -29,6 +29,7 @@ proc gophser::gophermap::process {_menu localDir selectorMountPath selectorSubPa
   $interp alias menu ::gophser::gophermap::Menu
   $interp alias describe ::gophser::gophermap::Describe
   $interp alias dir ::gophser::gophermap::Dir $localDir $selectorMountPath $selectorSubPath
+  $interp alias header ::gophser::gophermap::Header
   set gophermapPath [file join $selectorLocalDir gophermap]
   if {[catch {$interp invokehidden source $gophermapPath}]} {
     return -code error "error processing: $gophermapPath, for selector: [file join $selectorMountPath $selectorSubPath], $::errorInfo"
@@ -63,6 +64,38 @@ proc gophser::gophermap::Describe {filename userName {description {}}} {
   variable descriptions
   if {$userName eq ""} {set userName $filename}
   dict set descriptions $filename [list $userName $description]
+}
+
+
+proc gophser::gophermap::Header {level text} {
+  set textlen [string length $text]
+  if {$level == 1} {
+    if {$textlen > 65} {
+      set text [string range $text 0 64]
+      set textlen 65
+      # TODO: Generate a warning
+    }
+    Menu info [string repeat "=" [expr {$textlen+4}]]
+    Menu info "= $text ="
+    Menu info [string repeat "=" [expr {$textlen+4}]]
+    Menu info ""
+    return
+  } elseif {$level == 2} {
+    set underlineCh "="
+  } elseif {$level == 3} {
+    set underlineCh "-"
+  } else {
+    return -code "invalid header level"
+  }
+
+  if {$textlen > 69} {
+    set text [string range $text 0 68]
+    set textlen 69
+    # TODO: Generate a warning
+  }
+  Menu info $text
+  Menu info [string repeat $underlineCh $textlen]
+  Menu info ""
 }
 
 
