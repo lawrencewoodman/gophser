@@ -452,9 +452,35 @@ proc gophser::MakeSelectorLocalPath {localDir selectorSubPath} {
 }
 
 
+# Make a list of directory entries for ListDir
+# type is f for file, d for directory
+# names is a list of file/dir names
+# descriptions is a dict with key file/dir name and values: {userName description}
+proc gophser::MakeDirEntries {type names descriptions} {
+  set dirEntries [list]
+  foreach name $names {
+    if {$name eq "gophermap"} {
+      # Don't display the gophermap
+      continue
+    }
+    if {[dict exists $descriptions $name]} {
+      lassign [dict get $descriptions $name] userName description
+    } else {
+      set userName $name
+      set description ""
+    }
+    lappend dirEntries [list $name $type $userName $description]
+  }
+  return $dirEntries
+}
+
+
 # listDir ?switches? menu localDir selectorMountPath selectorSubPath
 # switches:
 #  -descriptions descriptions  Dictionary of descriptions for each filename
+#
+# Creates menu items for each file/dir in directory
+# Entries are sorted alphabetically with directories proceeding files
 #
 # TODO: Make this safer and suitable for running as master command from interpreter
 # TODO: Restrict directories and look at permissions (world readable?)
@@ -479,29 +505,18 @@ proc gophser::ListDir {args} {
 
   lassign $args menu localDir selectorMountPath selectorSubPath
   set selectorLocalDir [MakeSelectorLocalPath $localDir $selectorSubPath]
-  set files [glob -tails -directory $selectorLocalDir *]
+  set dirs [glob -tails -type d -nocomplain -directory $selectorLocalDir *]
+  set dirs [lsort -nocase $dirs]
+  set files [glob -tails -type f -nocomplain -directory $selectorLocalDir *]
   set files [lsort -nocase $files]
-  set descriptons [dict create]
 
-  # TODO: Work out why dict for isn't preserving insertion order
-  # TODO: therefore forcing us to use foreach
-  foreach file $files {
-    if {[dict exists $descriptions $file]} {
-      lassign [dict get $descriptions $file] userName description
-    } else {
-      set userName $file
-      set description ""
-    }
-    dict set descriptions $file [list $userName $description]
-  }
+  set dirEntriesD [MakeDirEntries d $dirs $descriptions]
+  set dirEntriesF [MakeDirEntries f $files $descriptions]
+  set dirEntries [concat $dirEntriesD $dirEntriesF]
 
   set prevFileDescribed false   ; # This prevents a double proceeding new line
-  foreach file $files {
-    lassign [dict get $descriptions $file] userName description
-    if {$file eq "gophermap"} {
-      # Don't display the gophermap
-      continue
-    }
+  foreach dirEntry $dirEntries {
+    lassign $dirEntry localName type userName description
 
     # If a description exists then put a blank line before file
     if {!$prevFileDescribed && $description ne ""} {
@@ -511,11 +526,11 @@ proc gophser::ListDir {args} {
       set prevFileDescribed false
     }
 
-    set selector [file join $selectorMountPath $selectorSubPath $file]
-    set nativeFile [file join $selectorLocalDir $file]
-    if {[file isfile $nativeFile]} {
+    set selector [file join $selectorMountPath $selectorSubPath $localName]
+    if {$type eq "f"} {
       set menu [menu item $menu text $userName $selector]
-    } elseif {[file isdirectory $nativeFile]} {
+    } else {
+      # Directory
       set menu [menu item $menu menu $userName $selector]
     }
 
