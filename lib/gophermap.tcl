@@ -71,8 +71,6 @@ proc gophser::gophermap::Header {level text} {
   set textlen [string length $text]
   if {$level == 1} {
     if {$textlen > 65} {
-      set text [string range $text 0 64]
-      set textlen 65
       # TODO: Generate a warning
     }
     Menu info [string repeat "=" [expr {$textlen+4}]]
@@ -89,8 +87,6 @@ proc gophser::gophermap::Header {level text} {
   }
 
   if {$textlen > 69} {
-    set text [string range $text 0 68]
-    set textlen 69
     # TODO: Generate a warning
   }
   Menu info $text
