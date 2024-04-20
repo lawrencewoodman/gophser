@@ -18,8 +18,8 @@ proc gophser::shutdown {} {
 
 
 # localDir: The local absolute directory path
-# selectorPath: The path for the selector which must not contain wildcards
-proc gophser::mount {localDir selectorPath} {
+# selectorMountPath: The path for the selector which must not contain wildcards
+proc gophser::mount {localDir selectorMountPath} {
   set localDir [string trim $localDir]
 
   if {$localDir eq ""} {
@@ -31,17 +31,17 @@ proc gophser::mount {localDir selectorPath} {
 
   set localDir [file normalize $localDir]
 
-  if {[string match {*[*?]*} $selectorPath] ||
-      [string match {*\[*} $selectorPath] ||
-      [string match {*\]*} $selectorPath]} {
+  if {[string match {*[*?]*} $selectorMountPath] ||
+      [string match {*\[*} $selectorMountPath] ||
+      [string match {*\]*} $selectorMountPath]} {
     return -code error "selector can not contain wildcards"
   }
 
-  set selectorPath [router::safeSelector $selectorPath]
-  if {$selectorPath eq "/"} {
-    set selectorPathGlob "/*"
+  set selectorMountPath [router::safeSelector $selectorMountPath]
+  if {$selectorMountPath eq "/"} {
+    set selectorMountPathGlob "/*"
   } else {
-    set selectorPathGlob "$selectorPath/*"
+    set selectorMountPathGlob "$selectorMountPath/*"
   }
 
   if {![file exists $localDir]} {
@@ -52,7 +52,7 @@ proc gophser::mount {localDir selectorPath} {
     return -code error "local directory isn't a directory: $localDir"
   }
 
-  router::route $selectorPathGlob [list gophser::ServePath $localDir $selectorPath]
+  router::route $selectorMountPathGlob [list gophser::ServePath $localDir $selectorMountPath]
 }
 
 
