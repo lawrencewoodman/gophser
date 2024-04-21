@@ -417,16 +417,13 @@ proc gophser::SendError {sock msg} {
 proc gophser::stripSelectorPrefix {prefixPath selectorPath} {
   set prefixPathParts [file split $prefixPath]
   set pathParts [file split $selectorPath]
-  set compPathParts [lrange $pathParts 0 [llength $prefixPathParts]-1]
-  foreach prefixPart $prefixPathParts compPart $compPathParts {
-    if {$prefixPart ne $compPart} {
-      error "selector: $selectorPath does not contain prefix: $prefixPath"
-    }
+  set compPath [file join {*}[lrange $pathParts 0 [llength $prefixPathParts]-1]]
+  if {$prefixPath ne $compPath} {
+    return -code error "selector: $selectorPath does not contain prefix: $prefixPath"
   }
-  if {[llength $pathParts] <= [llength $prefixPathParts]} {
-    return ""
-  }
-  return [file join {*}[lrange $pathParts [llength $prefixPathParts] end]]
+  set remainingPathParts [lrange $pathParts [llength $prefixPathParts] end]
+  if {[llength $remainingPathParts] == 0} {return ""}
+  return [file join {*}$remainingPathParts]
 }
 
 
