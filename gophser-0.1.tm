@@ -225,6 +225,14 @@ proc gophser::mount {localDir selectorMountPath} {
 
   set localDir [file normalize $localDir]
 
+  if {![file exists $localDir]} {
+    return -code error "local directory doesn't exist: $localDir"
+  }
+
+  if {![file isdirectory $localDir]} {
+    return -code error "local directory isn't a directory: $localDir"
+  }
+
   if {[string match {*[*?]*} $selectorMountPath] ||
       [string match {*\[*} $selectorMountPath] ||
       [string match {*\]*} $selectorMountPath]} {
@@ -236,14 +244,6 @@ proc gophser::mount {localDir selectorMountPath} {
     set selectorMountPathGlob "/*"
   } else {
     set selectorMountPathGlob "$selectorMountPath/*"
-  }
-
-  if {![file exists $localDir]} {
-    return -code error "local directory doesn't exist: $localDir"
-  }
-
-  if {![file isdirectory $localDir]} {
-    return -code error "local directory isn't a directory: $localDir"
   }
 
   router::route $selectorMountPathGlob [list gophser::ServePath $localDir $selectorMountPath]
@@ -430,7 +430,8 @@ proc gophser::stripSelectorPrefix {prefixPath selectorPath} {
 }
 
 
-# TODO: Do we need selectorPath?
+# selectorPath is the complete path requested.  This is assumed to have
+#              been made safe.
 # selectorMountPath is the path that localDir resides in the selector hierarchy
 proc gophser::ServePath {localDir selectorMountPath selectorPath} {
   set selectorSubPath [stripSelectorPrefix $selectorMountPath $selectorPath]
@@ -446,8 +447,6 @@ proc gophser::ServePath {localDir selectorMountPath selectorPath} {
     log warning "local path isn't world readable: $path for selector: $selectorPath"
     return [list error "path not found"]
   }
-
-  # TODO: make path joining safe and check world readable
 
   if {[file isfile $path]} {
     # TODO: Don't allow gophermap to be downloaded
