@@ -42,10 +42,10 @@ namespace eval gophser::cache {
 
 
 # Put data for selectorPath in the cache
-proc gophser::cache::put {selectorPath data} {
+proc gophser::cache::put {selectorPath data {keepSeconds 60}} {
   variable store
-  # TODO: Store expire time rather than curren time?
-  dict set store $selectorPath [list [clock seconds] $data]
+  set expireTime [clock add [clock seconds] $keepSeconds seconds]
+  dict set store $selectorPath [list $expireTime $data]
 }
 
 
@@ -53,35 +53,51 @@ proc gophser::cache::put {selectorPath data} {
 proc gophser::cache::get {selectorPath} {
   variable store
   variable cleanTime
+
+  set currentTime [clock seconds]
   
-  # If it has been over 60 seconds since the last clean out of old entries
-  if {[clock seconds] - $cleanTime > 60} {
-    # Clean out old entries
+  # Clean out expired entries if it has been over 360 seconds since last done
+  if {$currentTime - $cleanTime > 360} {
     Clean
   }
+
   if {![dict exists $store $selectorPath]} {
     return {false {}}
   }
-  lassign [dict get $store $selectorPath] getTime data
+
+  lassign [dict get $store $selectorPath] expireTime data
+
+  # Remove entry if expired
+  if {$currentTime > $expireTime} {
+    Remove $selectorPath
+    return {false {}}
+  }
   return [list true $data]
 }
 
 
-# Remove any cache entries older than 60 seconds
+proc gophser::cache::Remove {selectorPath} {
+  variable store
+    dict unset store $selectorPath
+}
+
+
+# Remove any cache entries that have expired
+# This is used to prevent the cache from taking up too much memory
 proc gophser::cache::Clean {} {
   variable store
   variable cleanTime
   set cleanTime [clock seconds]
-  set oldSelectors [list]
+  set expiredSelectors [list]
   dict for {selectorPath entry} $store {
-    lassign $entry getTime
-    # If the entry is more than 60 seconds old, note it for removal
-    if {[clock seconds] - $getTime > 60} {
-      lappend oldSelectors $selectorPath
+    lassign $entry expireTime
+    # If current time is past the expire time
+    if {[clock seconds] > $expireTime} {
+      lappend expiredSelectors $selectorPath
     }
   }
-  foreach selectorPath $oldSelectors {
-    dict unset store $selectorPath
+  foreach selectorPath $expiredSelectors {
+    Remove $selectorPath
   }
 }
 
