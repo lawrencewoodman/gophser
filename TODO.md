@@ -25,3 +25,12 @@
   care of the test
 * Make all sub namespaces Capitalized
 * Should log warning take a selector and store it in a structured way
+
+## Titles
+* List different styles of titles such as
+  === This is a Title ===
+  --- This is a Smaller Title ---
+
+  THIS IS ALSO A TITLE
+
+  This is a Smaller Version of the Title
