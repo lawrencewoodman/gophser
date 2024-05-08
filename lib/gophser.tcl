@@ -256,7 +256,7 @@ proc gophser::ServePath {localDir selectorMountPath selectorPath} {
     # TODO: Support caching when file isn't too big
     return [list text [ReadFile $path]]
   } elseif {[file isdirectory $path]} {
-    lassign [cache get $selectorPath] inCache menuText
+    lassign [cache fetch $selectorPath] inCache menuText
     if {!$inCache} {
       set selectorLocalPath [MakeSelectorLocalPath $localDir $selectorSubPath]
       set menu [menu create localhost 7070]
@@ -267,7 +267,7 @@ proc gophser::ServePath {localDir selectorMountPath selectorPath} {
         set menu [ListDir $menu $localDir $selectorMountPath $selectorSubPath]
       }
       set menuText [menu render $menu]
-      cache put $selectorPath $menuText
+      cache store $selectorPath $menuText
     }
     return [list text $menuText]
   }
