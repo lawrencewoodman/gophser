@@ -8,7 +8,9 @@
 
 proc gophser::init {port} {
   variable listen
+  variable cache
   set listen [socket -server ::gophser::ClientConnect $port]
+  set cache [cache create]
 }
 
 proc gophser::shutdown {} {
@@ -237,6 +239,7 @@ proc gophser::stripSelectorPrefix {prefixPath selectorPath} {
 #              been made safe.
 # selectorMountPath is the path that localDir resides in the selector hierarchy
 proc gophser::ServePath {localDir selectorMountPath selectorPath} {
+  variable cache
   set selectorSubPath [stripSelectorPrefix $selectorMountPath $selectorPath]
   set path [file join $localDir $selectorSubPath]
 
@@ -256,7 +259,7 @@ proc gophser::ServePath {localDir selectorMountPath selectorPath} {
     # TODO: Support caching when file isn't too big
     return [list text [ReadFile $path]]
   } elseif {[file isdirectory $path]} {
-    lassign [cache fetch $selectorPath] inCache menuText
+    lassign [cache fetch cache $selectorPath] inCache menuText
     if {!$inCache} {
       set selectorLocalPath [MakeSelectorLocalPath $localDir $selectorSubPath]
       set menu [menu create localhost 7070]
@@ -267,7 +270,7 @@ proc gophser::ServePath {localDir selectorMountPath selectorPath} {
         set menu [ListDir $menu $localDir $selectorMountPath $selectorSubPath]
       }
       set menuText [menu render $menu]
-      cache store $selectorPath $menuText
+      cache store cache $selectorPath $menuText
     }
     return [list text $menuText]
   }

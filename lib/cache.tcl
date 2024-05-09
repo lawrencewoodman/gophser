@@ -8,70 +8,65 @@
 namespace eval gophser::cache {
   namespace export {[a-z]*}
   namespace ensemble create
-  variable store [dict create]
-  variable cleanTime [clock seconds]
 }
 
-# TODO: Test cache
 
-# TODO: Create an new or similar command to create a new cache and pass as variable
+proc gophser::cache::create {} {
+  return [dict create store {} details [dict create cleanupTime [clock seconds]]]
+}
 
-# Put data for selectorPath in the cache
-proc gophser::cache::store {selectorPath data {keepSeconds 60}} {
-  variable store
+# Store data for selectorPath in the cache
+proc gophser::cache::store {cacheVar selectorPath data {keepSeconds 60}} {
+  upvar $cacheVar cache
   set expireTime [clock add [clock seconds] $keepSeconds seconds]
-  dict set store $selectorPath [list $expireTime $data]
+  dict set cache store $selectorPath [list $expireTime $data]
 }
 
 
+# Fetch data for selectorPath from the cache
 # Return: {exists data}
-proc gophser::cache::fetch {selectorPath} {
-  variable store
-  variable cleanTime
-
+proc gophser::cache::fetch {cacheVar selectorPath} {
+  upvar $cacheVar cache
   set currentTime [clock seconds]
+  set cleanupTime [dict get $cache details cleanupTime]
   
   # Clean up expired entries if it has been over 360 seconds since last done
-  if {$currentTime - $cleanTime > 360} {
-    Cleanup
+  if {$currentTime - $cleanupTime > 360} {
+    set cache [Cleanup $cache]
   }
 
-  if {![dict exists $store $selectorPath]} {
+  if {![dict exists $cache store $selectorPath]} {
     return {false {}}
   }
 
-  lassign [dict get $store $selectorPath] expireTime data
+  lassign [dict get $cache store $selectorPath] expireTime data
 
   # Remove entry if expired
   if {$currentTime > $expireTime} {
-    Remove $selectorPath
+    dict unset cache store $selectorPath
     return {false {}}
   }
   return [list true $data]
 }
 
 
-proc gophser::cache::Remove {selectorPath} {
-  variable store
-  dict unset store $selectorPath
-}
-
-
 # Remove any cache entries that have expired
 # This is used to prevent the cache from taking up too much memory
-proc gophser::cache::Cleanup {} {
-  variable store
-  variable cleanTime
-  set cleanTime [clock seconds]
+proc gophser::cache::Cleanup {cache} {
+  set currentTime [clock seconds]
+  set store [dict get $cache store]
+  dict set cache details cleanupTime [clock seconds]
   set expiredSelectors [list]
   dict for {selectorPath entry} $store {
     lassign $entry expireTime
     # If current time is past the expire time
-    if {[clock seconds] > $expireTime} {
+    if {$currentTime > $expireTime} {
       lappend expiredSelectors $selectorPath
     }
   }
   foreach selectorPath $expiredSelectors {
-    Remove $selectorPath
+    dict unset cache store $selectorPath
   }
+  return $cache
 }
+

@@ -8,6 +8,8 @@
 namespace eval gophser {
   namespace export {[a-z]*}
 
+  # A selector cache
+  variable cache
   # TODO: Rename listen
   variable listen
   variable sendMsgs [dict create]

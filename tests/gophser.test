@@ -30,6 +30,7 @@ test init-1 {Check can read menu from server when no gophermap} \
   "1fixtures\t/tests/fixtures\tlocalhost\t7070\r\n" \
   "1stress\t/tests/stress\tlocalhost\t7070\r\n" \
   "0all.tcl\t/tests/all.tcl\tlocalhost\t7070\r\n" \
+  "0cache.test\t/tests/cache.test\tlocalhost\t7070\r\n" \
   "0gophermap.test\x09/tests/gophermap.test\x09localhost\x097070\r\n" \
   "0gophser.test\t/tests/gophser.test\tlocalhost\t7070\r\n" \
   "0menu.test\t/tests/menu.test\tlocalhost\t7070\r\n" \
@@ -81,6 +82,7 @@ test init-3 {Check can mount somewhere other than root} \
   "1fixtures\t/bob/tests/fixtures\tlocalhost\t7070\r\n" \
   "1stress\t/bob/tests/stress\tlocalhost\t7070\r\n" \
   "0all.tcl\t/bob/tests/all.tcl\tlocalhost\t7070\r\n" \
+  "0cache.test\t/bob/tests/cache.test\tlocalhost\t7070\r\n" \
   "0gophermap.test\x09/bob/tests/gophermap.test\x09localhost\x097070\r\n" \
   "0gophser.test\t/bob/tests/gophser.test\tlocalhost\t7070\r\n" \
   "0menu.test\t/bob/tests/menu.test\tlocalhost\t7070\r\n" \
