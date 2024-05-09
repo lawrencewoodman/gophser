@@ -1,5 +1,7 @@
 # TODO
 
+* Use gophermap files to serve gophermaps and use another file name to generate them
+  or have an option within to dynamically generate
 * Unify menu and gophermap?
 * Try using coroutines for server to serve multiple connections - benchmark - also maybe only resort to if load high
 * Be able to rate limit ip addresses and display their details on a page
@@ -34,3 +36,10 @@
   THIS IS ALSO A TITLE
 
   This is a Smaller Version of the Title
+
+
+## Testing Weaknesses
+
+### Cache
+* Test Cleanup is called within fetch
+* Test Cleanp reduces memory as expected
