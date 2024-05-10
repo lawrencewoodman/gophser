@@ -28,6 +28,11 @@
 * Make all sub namespaces Capitalized
 * Should log warning take a selector and store it in a structured way
 
+## cache
+* Consider having a limit of the number of items in the cache and when exceeded run Cleanup
+  - Could also base this on size but that might be slower can cause shimmering problems
+
+
 ## Titles
 * List different styles of titles such as
   === This is a Title ===
