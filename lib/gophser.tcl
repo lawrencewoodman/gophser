@@ -256,11 +256,11 @@ proc gophser::ServePath {localDir selectorMountPath selectorPath} {
 
   if {[file isfile $path]} {
     # TODO: Don't allow gophermap to be downloaded
-    # TODO: Support caching when file isn't too big
+    # TODO: Support caching when file isn't too big?
     return [list text [ReadFile $path]]
   } elseif {[file isdirectory $path]} {
-    lassign [cache fetch cache $selectorPath] inCache menuText
-    if {!$inCache} {
+    set menuText [cache fetch cache $selectorPath]
+    if {$menuText eq {}} {
       set selectorLocalPath [MakeSelectorLocalPath $localDir $selectorSubPath]
       set menu [menu create localhost 7070]
       # TODO: Rename gophermap

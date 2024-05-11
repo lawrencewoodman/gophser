@@ -15,7 +15,7 @@ test fetch-1 {Check handles a missing selector} \
   set cache [gophser::cache create]
 } -body {
   gophser::cache fetch cache unknown
-} -result {false {}}
+} -result {}
 
 
 test fetch-2 {Check handles stored selectors} \
@@ -25,7 +25,7 @@ test fetch-2 {Check handles stored selectors} \
   gophser::cache store cache {/someotherplace} {this is the data at someotherplace}
 } -body {
   list [gophser::cache fetch cache {/someplace}] [gophser::cache fetch cache {/someotherplace}]
-} -result {{true {this is the data at someplace}} {true {this is the data at someotherplace}}}
+} -result {{this is the data at someplace} {this is the data at someotherplace}}
 
 
 test fetch-3 {Check expires a stored selector after specified time} \
@@ -38,16 +38,16 @@ test fetch-3 {Check expires a stored selector after specified time} \
   set startTime [clock seconds]
   set timeout true
   while {$timeout && ([clock seconds] - $startTime < 3)} {
-    lassign [gophser::cache fetch cache {/someplace}] exists value
-    if {$exists && $value eq {this is the data at someplace}} {
+    set value [gophser::cache fetch cache {/someplace}]
+    if {$value eq {this is the data at someplace}} {
       incr numHits
     }
-    if {!$exists && $value eq {}} {
+    if {$value eq {}} {
       set timeout false
     }
   }
   list $timeout [expr {$numHits > 10}] [gophser::cache fetch cache {/someotherplace}]
-} -result {false 1 {true {this is the data at someotherplace}}}
+} -result {false 1 {this is the data at someotherplace}}
 
 
 cleanupTests

@@ -54,7 +54,7 @@ proc gophser::cache::store {cacheVar selectorPath data {keepSeconds 60}} {
 
 
 # Fetch data for selectorPath from the cache
-# Return: {exists data}
+# Return: data or {} is not in cache
 proc gophser::cache::fetch {cacheVar selectorPath} {
   upvar $cacheVar cache
   set currentTime [clock seconds]
@@ -66,7 +66,7 @@ proc gophser::cache::fetch {cacheVar selectorPath} {
   }
 
   if {![dict exists $cache store $selectorPath]} {
-    return {false {}}
+    return {}
   }
 
   lassign [dict get $cache store $selectorPath] expireTime data
@@ -74,9 +74,9 @@ proc gophser::cache::fetch {cacheVar selectorPath} {
   # Remove entry if expired
   if {$currentTime > $expireTime} {
     dict unset cache store $selectorPath
-    return {false {}}
+    return {}
   }
-  return [list true $data]
+  return $data
 }
 
 
@@ -466,11 +466,11 @@ proc gophser::ServePath {localDir selectorMountPath selectorPath} {
 
   if {[file isfile $path]} {
     # TODO: Don't allow gophermap to be downloaded
-    # TODO: Support caching when file isn't too big
+    # TODO: Support caching when file isn't too big?
     return [list text [ReadFile $path]]
   } elseif {[file isdirectory $path]} {
-    lassign [cache fetch cache $selectorPath] inCache menuText
-    if {!$inCache} {
+    set menuText [cache fetch cache $selectorPath]
+    if {$menuText eq {}} {
       set selectorLocalPath [MakeSelectorLocalPath $localDir $selectorSubPath]
       set menu [menu create localhost 7070]
       # TODO: Rename gophermap
