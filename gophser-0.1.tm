@@ -116,6 +116,14 @@ namespace eval gophser::gophermap {
 
   variable menu
   variable descriptions
+  variable includeDir [list]
+}
+
+
+# TODO: This or pass config to process?
+proc gophser::gophermap::setIncludeDir {_includeDir} {
+  variable includeDir
+  set includeDir $_includeDir
 }
 
 
@@ -129,13 +137,16 @@ proc gophser::gophermap::process {_menu localDir selectorMountPath selectorSubPa
 
   set interp [interp create -safe]
   $interp eval {unset {*}[info vars]}
+
   $interp alias menu ::gophser::gophermap::Menu
   $interp alias describe ::gophser::gophermap::Describe
   $interp alias dir ::gophser::gophermap::Dir $localDir $selectorMountPath $selectorSubPath
   $interp alias header ::gophser::gophermap::Header
+  $interp alias source ::gophser::gophermap::Source $interp
+
   set gophermapPath [file join $selectorLocalDir gophermap]
-  if {[catch {$interp invokehidden source $gophermapPath}]} {
-    return -code error "error processing: $gophermapPath, for selector: [file join $selectorMountPath $selectorSubPath], $::errorInfo"
+  if {[catch {$interp invokehidden source $gophermapPath} err]} {
+    return -code error "error processing: $gophermapPath, for selector: [file join $selectorMountPath $selectorSubPath], $err"
   }
   return $menu
 }
@@ -207,6 +218,26 @@ proc gophser::gophermap::Dir {localDir selectorMountPath selectorSubPath} {
                                $menu $localDir \
                                $selectorMountPath $selectorSubPath]
 }
+
+
+proc gophser::gophermap::Source {interp filename} {
+  variable includeDir
+  # TODO: Make sure filename doesn't include .. to allow moving outside of include path
+  set fullFilename [file join $includeDir $filename]
+  set isErr [catch {
+    set fd [open $fullFilename r]
+    set src [::read $fd]
+    close $fd
+  } err]
+  if {$isErr} {
+    # TODO: Could this reveal the whole path to filename and do we want this?
+    # TODO: Log this error
+    return -code error $err
+  }
+  # TODO: Test what this returns and return errors properly
+  return [$interp eval $src]
+}
+
 
 # Gopher Server Handling Code
 #

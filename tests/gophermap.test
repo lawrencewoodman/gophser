@@ -21,7 +21,10 @@ test process-1 {Check render adds correct .<cr><lf> ending to menu} \
   gophser::menu render $m
 } -result [string cat \
   "0README.md - find all about this directory\tREADME.md\tlocalhost\t70\r\n" \
-  "1The example.com site\x09/\x09example.com\x0970\r\n" \
+  "1The example.com site\t/\texample.com\t70\r\n" \
+  "1error\t/error\tlocalhost\t70\r\n" \
+  "1includes\t/includes\tlocalhost\t70\r\n" \
+  "1sourcing\t/sourcing\tlocalhost\t70\r\n" \
   "1titles\t/titles\tlocalhost\t70\r\n" \
   "i\tFAKE\tlocalhost\t70\r\n" \
   "0Documentation\t/docs.txt\tlocalhost\t70\r\n" \
@@ -36,7 +39,18 @@ test process-1 {Check render adds correct .<cr><lf> ending to menu} \
   ".\r\n"]
 
 
-test process-2 {Check titles display properly} \
+test process-2 {Check returns errors properly} \
+-setup {
+  set fixturesDir [file join [TestHelpers::getRepoRootDir] tests fixtures ]
+  set errorDir [file join $fixturesDir error]
+  set m [gophser::menu create]
+} -body {
+  set m [gophser::gophermap::process $m $errorDir "/" ""]
+  gophser::menu render $m
+} -returnCodes {error} -result {error processing: /home/lorry/data/dev/lib/gophser/tests/fixtures/error/gophermap, for selector: /, can't read "b": no such variable}
+
+
+test process-3 {Check headers display properly} \
 -setup {
   set m [gophser::menu create]
   set fixturesDir [file join [TestHelpers::getRepoRootDir] tests fixtures titles]
@@ -64,6 +78,26 @@ test process-2 {Check titles display properly} \
   "ismall\tFAKE\tlocalhost\t70\r\n" \
   "i-----\tFAKE\tlocalhost\t70\r\n" \
   "i\tFAKE\tlocalhost\t70\r\n" \
+  ".\r\n"]
+
+
+test process-4 {Check source loads and evals a file} \
+-setup {
+  set fixturesDir [file join [TestHelpers::getRepoRootDir] tests fixtures ]
+  set sourcingDir [file join $fixturesDir sourcing]
+  set includesDir [file join $fixturesDir includes]
+  # TODO: Put includeDir within some sort of config under gophser::
+  gophser::gophermap::setIncludeDir $includesDir
+  set m [gophser::menu create]
+} -body {
+  set m [gophser::gophermap::process $m $sourcingDir "/" ""]
+  gophser::menu render $m
+} -result [string cat \
+  "i== Sourcing ==\tFAKE\tlocalhost\t70\r\n" \
+  "i\tFAKE\tlocalhost\t70\r\n" \
+  "iWelcome Peter\tFAKE\tlocalhost\t70\r\n" \
+  "i\tFAKE\tlocalhost\t70\r\n" \
+  "iThe end\tFAKE\tlocalhost\t70\r\n" \
   ".\r\n"]
 
 
