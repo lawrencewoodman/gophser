@@ -14,6 +14,13 @@
   care of the test
 * Make all sub namespaces Capitalized
 * Should log warning take a selector and store it in a structured way
+* Should gopher links be stripped of leading / ?
+* handle receiving a selector with or without initial slash and handle the same?                                                                
+  - maybe have this as an option   
+* Random thoughts from email
+  - Change router to work with mount points                                                                                                       
+  - Remove need for stripSelectorPrefix                                                                                                           
+  - Pass mount point and sub selector to handler  
 
 
 ## Future Features
