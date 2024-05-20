@@ -11,6 +11,8 @@ proc gophser::init {port} {
   variable cache
   set listen [socket -server ::gophser::ClientConnect $port]
   set cache [cache create]
+  # Add route to handle URL: selectors
+  route "URL:*" gophser::ServeURL
 }
 
 proc gophser::shutdown {} {
@@ -54,7 +56,7 @@ proc gophser::mount {localDir selectorMountPath} {
     set selectorMountPathGlob "$selectorMountPath/*"
   }
 
-  router::route $selectorMountPathGlob [list gophser::ServePath $localDir $selectorMountPath]
+  route $selectorMountPathGlob [list gophser::ServePath $localDir $selectorMountPath]
 }
 
 
@@ -376,3 +378,34 @@ proc gophser::ListDir {args} {
   }
   return $menu
 }
+
+
+# Serve a html page for cases when the selector begins with 'URL:' followed by
+# a URL.  This is for clients that don't support the 'URL:' selector prefix so
+# that they can be served a html page which points to the URL.  This conforms
+# to:
+#   gopher://bitreich.org:70/1/scm/gopher-protocol/file/references/h_type.txt.gph
+proc gophser::ServeURL {selectorPath} {
+  set htmlTemplate {
+  <HTML>
+    <HEAD>
+      <META HTTP-EQUIV="refresh" content="2;URL=@URL">
+    </HEAD>
+    <BODY>
+      You are following a link from gopher to a web site.  You will be
+      automatically taken to the web site shortly.  If you do not get sent
+      there, please click
+      <A HREF="@URL">here</A> to go to the web site.
+      <P>
+      The URL linked is:
+      <P>
+      <A HREF="@URL">@URL</A>
+      <P>
+      Thanks for using gopher!
+    </BODY>
+  </HTML>
+  }
+  set url [regsub {^URL:[ ]*(.*)$} $selectorPath {\1}]
+  return [list text [string map [list @URL $url] $htmlTemplate]]
+}
+

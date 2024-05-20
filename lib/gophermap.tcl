@@ -63,6 +63,9 @@ proc gophser::gophermap::Menu {command args} {
       # TODO: ensure can only include files in the current location?
       set menu [::gophser::menu::item $menu menu {*}$args]
     }
+    url {
+      set menu [::gophser::menu::url $menu {*}$args]
+    }
     default {
       return -code error "menu: invalid command: $command"
     }

@@ -166,6 +166,9 @@ proc gophser::gophermap::Menu {command args} {
       # TODO: ensure can only include files in the current location?
       set menu [::gophser::menu::item $menu menu {*}$args]
     }
+    url {
+      set menu [::gophser::menu::url $menu {*}$args]
+    }
     default {
       return -code error "menu: invalid command: $command"
     }
@@ -252,6 +255,8 @@ proc gophser::init {port} {
   variable cache
   set listen [socket -server ::gophser::ClientConnect $port]
   set cache [cache create]
+  # Add route to handle URL: selectors
+  route "URL:*" gophser::ServeURL
 }
 
 proc gophser::shutdown {} {
@@ -295,7 +300,7 @@ proc gophser::mount {localDir selectorMountPath} {
     set selectorMountPathGlob "$selectorMountPath/*"
   }
 
-  router::route $selectorMountPathGlob [list gophser::ServePath $localDir $selectorMountPath]
+  route $selectorMountPathGlob [list gophser::ServePath $localDir $selectorMountPath]
 }
 
 
@@ -618,6 +623,37 @@ proc gophser::ListDir {args} {
   return $menu
 }
 
+
+# Serve a html page for cases when the selector begins with 'URL:' followed by
+# a URL.  This is for clients that don't support the 'URL:' selector prefix so
+# that they can be served a html page which points to the URL.  This conforms
+# to:
+#   gopher://bitreich.org:70/1/scm/gopher-protocol/file/references/h_type.txt.gph
+proc gophser::ServeURL {selectorPath} {
+  set htmlTemplate {
+  <HTML>
+    <HEAD>
+      <META HTTP-EQUIV="refresh" content="2;URL=@URL">
+    </HEAD>
+    <BODY>
+      You are following a link from gopher to a web site.  You will be
+      automatically taken to the web site shortly.  If you do not get sent
+      there, please click
+      <A HREF="@URL">here</A> to go to the web site.
+      <P>
+      The URL linked is:
+      <P>
+      <A HREF="@URL">@URL</A>
+      <P>
+      Thanks for using gopher!
+    </BODY>
+  </HTML>
+  }
+  set url [regsub {^URL:[ ]*(.*)$} $selectorPath {\1}]
+  return [list text [string map [list @URL $url] $htmlTemplate]]
+}
+
+
 # Menu handling
 #
 # Copyright (C) 2024 Lawrence Woodman <https://lawrencewoodman.github.io/>
@@ -646,6 +682,37 @@ proc gophser::menu::info {menu text} {
 }
 
 
+# Supports protocols: gopher, ssh, http, https
+proc gophser::menu::url {menu url userName} {
+  lassign [SplitURL $url] protocol host port path type
+
+  switch $protocol {
+    gopher {
+      # Should conform to RFC 4266
+      if {$type eq ""} { set type 1 }
+      if {$port eq ""} { set port 70 }
+      return [item $menu $type $userName $path $host $port]
+    }
+    ssh -
+    http -
+    https {
+      # Conforms to: gopher://bitreich.org:70/1/scm/gopher-protocol/file/references/h_type.txt.gph
+      # 'host' and 'port' point to the gopher server that provided the
+      # directory this is to support clients that don't support the
+      # URL: prefix.  These clients should be served a HTML page which points
+      # to the desired URL.
+      # TODO: defaults seems like the wrong name when it refers to this server
+      # TODO: look at a better name than defaults
+      set host [dict get $menu defaults hostname]
+      set port [dict get $menu defaults port]
+      return [item $menu "h" $userName "URL:$url" $host $port]
+    }
+  }
+  # TODO: Support gophers protocol in future?
+  return -code error "unsupported protocol: $protocol"
+}
+
+
 # Add an item to the menu
 # Returns a menu with the item added
 proc gophser::menu::item {menu itemType userName selector {hostname {}} {port {}}} {
@@ -656,19 +723,13 @@ proc gophser::menu::item {menu itemType userName selector {hostname {}} {port {}
     set port [dict get $menu defaults port]
   }
 
-  # TODO: Handle if menu selector is blank should it be "/"?
-  switch -- $itemType {
-    text -
-    0 {set itemType 0}
-    menu -
-    1 {set itemType 1}
-    info -
-    i {set itemType i}
-    default {
-      # TODO: Have this as a warning only?
-      error "unknown item type: $itemType"
-    }
+  set itemTypeMap {text 0 0 0 menu 1 1 1 info i i i html h h h}
+  if {![dict exists $itemTypeMap $itemType]} {
+    return -code error "unknown item type: $itemType"
   }
+  set itemType [dict get $itemTypeMap $itemType]
+
+  # TODO: Handle if menu selector is blank should it be "/"? - Is that true?
 
   if {$itemType eq "i"} {
     # Wrap the text
@@ -701,6 +762,20 @@ proc gophser::menu::render {menu} {
   append menuStr ".\r\n"
   return $menuStr
 }
+
+
+# Split up a URL to return a list containing {protocol host port path type}
+# where type is a gopher item type if relevant
+proc gophser::menu::SplitURL {url} {
+  regexp {^(.*):\/\/([^:/]+)(:[0-9]*)?(.*)$} $url - protocol host port path
+  set port [string trimleft $port {:}]
+  set type ""
+  if {$protocol in {gopher gophers}} {
+    regexp {^\/(.)(.*)$} $path - type path
+  }
+  return [list $protocol $host $port $path $type]
+}
+
 
 # Define routes and route selectors to handlers
 #
@@ -753,7 +828,15 @@ proc gophser::router::getHandler {selector} {
 # Resolves .. without going past root of path
 # Removes . directory element
 # Supports directory elements beginning with ~
+# TODO: Should probably change this to safeFilePath and move it somewhere else
 proc gophser::router::safeSelector {selectorPath} {
+  # TODO: Work out how safe this selector really is
+  # TODO: and whether this should be done at this
+  # TODO: point or when actually handling file
+  # TODO: path
+  if {[string match {URL:*} $selectorPath]} {
+    return [string trim $selectorPath]
+  }
   set selectorPath [string map {" " "%20"} $selectorPath]
   set elements [file split $selectorPath]
   set newSelectorPath [list]

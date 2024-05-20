@@ -16,6 +16,7 @@ gophser::router::route "/files" testFiles
 gophser::router::route "/files/*" testFilesSplat
 gophser::router::route "/" testRoot
 gophser::router::route "/*/*" testDirFilename
+gophser::router::route "URL:*" testServeURL
 
 
 test getHandler-1 {Return false if route not found} \
@@ -82,9 +83,24 @@ test getHandler-8 {Detect exact path with trailing slash} \
 } -result testFiles
 
 
+test getHandler-8 {Check non standard path used with URL: prefix} \
+-setup {
+  set selectors {
+    {URL:https://example.com/blog}
+    {URL: https://example.com/blog}
+  }
+} -body {
+  lmap selector $selectors {
+    gophser::router::getHandler $selector
+  }
+} -result {testServeURL testServeURL}
+
+
 test safeSelector-1 {} \
 -setup {
   set selectors {
+    {URL:https://example.com/blog}
+    {URL: https://example.com/blog}
     /tests
     /fred/bob/dave
     /fred/bob/..
@@ -96,12 +112,13 @@ test safeSelector-1 {} \
     /
   }
 } -body {
-  set res {}
-  foreach selector $selectors {
-    lappend res [gophser::router::safeSelector $selector]
+  lmap selector $selectors {
+    gophser::router::safeSelector $selector
   }
-  set res
-} -result [list /tests /fred/bob/dave /fred / /gerald /~fred \
+} -result [list {URL:https://example.com/blog} \
+                {URL: https://example.com/blog} \
+                /tests /fred/bob/dave /fred / /gerald /~fred \
                 /.fred / /]
+
 
 cleanupTests

@@ -26,6 +26,37 @@ proc gophser::menu::info {menu text} {
 }
 
 
+# Supports protocols: gopher, ssh, http, https
+proc gophser::menu::url {menu url userName} {
+  lassign [SplitURL $url] protocol host port path type
+
+  switch $protocol {
+    gopher {
+      # Should conform to RFC 4266
+      if {$type eq ""} { set type 1 }
+      if {$port eq ""} { set port 70 }
+      return [item $menu $type $userName $path $host $port]
+    }
+    ssh -
+    http -
+    https {
+      # Conforms to: gopher://bitreich.org:70/1/scm/gopher-protocol/file/references/h_type.txt.gph
+      # 'host' and 'port' point to the gopher server that provided the
+      # directory this is to support clients that don't support the
+      # URL: prefix.  These clients should be served a HTML page which points
+      # to the desired URL.
+      # TODO: defaults seems like the wrong name when it refers to this server
+      # TODO: look at a better name than defaults
+      set host [dict get $menu defaults hostname]
+      set port [dict get $menu defaults port]
+      return [item $menu "h" $userName "URL:$url" $host $port]
+    }
+  }
+  # TODO: Support gophers protocol in future?
+  return -code error "unsupported protocol: $protocol"
+}
+
+
 # Add an item to the menu
 # Returns a menu with the item added
 proc gophser::menu::item {menu itemType userName selector {hostname {}} {port {}}} {
@@ -36,19 +67,13 @@ proc gophser::menu::item {menu itemType userName selector {hostname {}} {port {}
     set port [dict get $menu defaults port]
   }
 
-  # TODO: Handle if menu selector is blank should it be "/"?
-  switch -- $itemType {
-    text -
-    0 {set itemType 0}
-    menu -
-    1 {set itemType 1}
-    info -
-    i {set itemType i}
-    default {
-      # TODO: Have this as a warning only?
-      error "unknown item type: $itemType"
-    }
+  set itemTypeMap {text 0 0 0 menu 1 1 1 info i i i html h h h}
+  if {![dict exists $itemTypeMap $itemType]} {
+    return -code error "unknown item type: $itemType"
   }
+  set itemType [dict get $itemTypeMap $itemType]
+
+  # TODO: Handle if menu selector is blank should it be "/"? - Is that true?
 
   if {$itemType eq "i"} {
     # Wrap the text
@@ -81,3 +106,17 @@ proc gophser::menu::render {menu} {
   append menuStr ".\r\n"
   return $menuStr
 }
+
+
+# Split up a URL to return a list containing {protocol host port path type}
+# where type is a gopher item type if relevant
+proc gophser::menu::SplitURL {url} {
+  regexp {^(.*):\/\/([^:/]+)(:[0-9]*)?(.*)$} $url - protocol host port path
+  set port [string trimleft $port {:}]
+  set type ""
+  if {$protocol in {gopher gophers}} {
+    regexp {^\/(.)(.*)$} $path - type path
+  }
+  return [list $protocol $host $port $path $type]
+}
+

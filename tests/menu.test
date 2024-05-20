@@ -54,4 +54,150 @@ test item-1 {Check item handles info item type the same as info command} \
 } -result 1
 
 
+test url-1 {Check url handles gopher protocol} \
+-setup {
+  set m [gophser::menu create]
+  # NOTE: checks handles selectors that start with and without a slash
+  set urls {
+    {gopher://example.com {A good gopher example}}
+    {gopher://example.com/ {A good gopher example}}
+    {gopher://example.com/1~myuser/phlog {My phlog}}
+    {gopher://example.com/0~myuser/phlog/something-really-clever.txt {Pondering something really clever}}
+    {gopher://example.com/1/~myuser/phlog {My phlog}}
+    {gopher://example.com/0/~myuser/phlog/something-really-clever.txt {Pondering something really clever}}
+    {gopher://example.com:7070 {A good gopher example}}
+    {gopher://example.com:7070/ {A good gopher example}}
+    {gopher://example.com:7070/1~myuser/phlog {My phlog}}
+    {gopher://example.com:7070/0~myuser/phlog/something-really-clever.txt {Pondering something really clever}}
+    {gopher://example.com:7070/1/~myuser/phlog {My phlog}}
+    {gopher://example.com:7070/0/~myuser/phlog/something-really-clever.txt {Pondering something really clever}}
+  }
+
+  foreach url $urls {
+    lassign $url link userName
+    set m [gophser::menu url $m $link $userName]
+  }
+} -body {
+  gophser::menu render $m
+} -result [string cat \
+  "1A good gopher example\t\texample.com\t70\r\n" \
+  "1A good gopher example\t/\texample.com\t70\r\n" \
+  "1My phlog\t~myuser/phlog\texample.com\t70\r\n" \
+  "0Pondering something really clever\t~myuser/phlog/something-really-clever.txt\texample.com\t70\r\n" \
+  "1My phlog\t/~myuser/phlog\texample.com\t70\r\n" \
+  "0Pondering something really clever\t/~myuser/phlog/something-really-clever.txt\texample.com\t70\r\n" \
+  "1A good gopher example\t\texample.com\t7070\r\n" \
+  "1A good gopher example\t/\texample.com\t7070\r\n" \
+  "1My phlog\t~myuser/phlog\texample.com\t7070\r\n" \
+  "0Pondering something really clever\t~myuser/phlog/something-really-clever.txt\texample.com\t7070\r\n" \
+  "1My phlog\t/~myuser/phlog\texample.com\t7070\r\n" \
+  "0Pondering something really clever\t/~myuser/phlog/something-really-clever.txt\texample.com\t7070\r\n" \
+  ".\r\n"]
+
+
+test url-2 {Check url handles http protocol} \
+-setup {
+  set m [gophser::menu create]
+  set urls {
+    {http://example.com {A good http example}}
+    {http://example.com/ {A good http example}}
+    {http://example.com/~myuser/phlog {My phlog}}
+    {http://example.com/~myuser/phlog/something-really-clever.txt {Pondering something really clever}}
+    {http://example.com:8080 {A good http example}}
+    {http://example.com:8080/ {A good http example}}
+    {http://example.com:8080/~myuser/phlog {My phlog}}
+    {http://example.com:8080/~myuser/phlog/something-really-clever.txt {Pondering something really clever}}
+  }
+
+  foreach url $urls {
+    lassign $url link userName
+    set m [gophser::menu url $m $link $userName]
+  }
+} -body {
+  gophser::menu render $m
+} -result [string cat \
+  "hA good http example\tURL:http://example.com\tlocalhost\t70\r\n" \
+  "hA good http example\tURL:http://example.com/\tlocalhost\t70\r\n" \
+  "hMy phlog\tURL:http://example.com/~myuser/phlog\tlocalhost\t70\r\n" \
+  "hPondering something really clever\tURL:http://example.com/~myuser/phlog/something-really-clever.txt\tlocalhost\t70\r\n" \
+  "hA good http example\tURL:http://example.com:8080\tlocalhost\t70\r\n" \
+  "hA good http example\tURL:http://example.com:8080/\tlocalhost\t70\r\n" \
+  "hMy phlog\tURL:http://example.com:8080/~myuser/phlog\tlocalhost\t70\r\n" \
+  "hPondering something really clever\tURL:http://example.com:8080/~myuser/phlog/something-really-clever.txt\tlocalhost\t70\r\n" \
+  ".\r\n"]
+
+
+test url-3 {Check url handles https protocol} \
+-setup {
+  set m [gophser::menu create]
+  set urls {
+    {https://example.com {A good https example}}
+    {https://example.com/ {A good https example}}
+    {https://example.com/~myuser/phlog {My phlog}}
+    {https://example.com/~myuser/phlog/something-really-clever.txt {Pondering something really clever}}
+    {https://example.com:8443 {A good https example}}
+    {https://example.com:8443/ {A good https example}}
+    {https://example.com:8443/~myuser/phlog {My phlog}}
+    {https://example.com:8443/~myuser/phlog/something-really-clever.txt {Pondering something really clever}}
+  }
+
+  foreach url $urls {
+    lassign $url link userName
+    set m [gophser::menu url $m $link $userName]
+  }
+} -body {
+  gophser::menu render $m
+} -result [string cat \
+  "hA good https example\tURL:https://example.com\tlocalhost\t70\r\n" \
+  "hA good https example\tURL:https://example.com/\tlocalhost\t70\r\n" \
+  "hMy phlog\tURL:https://example.com/~myuser/phlog\tlocalhost\t70\r\n" \
+  "hPondering something really clever\tURL:https://example.com/~myuser/phlog/something-really-clever.txt\tlocalhost\t70\r\n" \
+  "hA good https example\tURL:https://example.com:8443\tlocalhost\t70\r\n" \
+  "hA good https example\tURL:https://example.com:8443/\tlocalhost\t70\r\n" \
+  "hMy phlog\tURL:https://example.com:8443/~myuser/phlog\tlocalhost\t70\r\n" \
+  "hPondering something really clever\tURL:https://example.com:8443/~myuser/phlog/something-really-clever.txt\tlocalhost\t70\r\n" \
+  ".\r\n"]
+
+
+test url-4 {Check url handles ssh protocol} \
+-setup {
+  set m [gophser::menu create]
+  set urls {
+    {ssh://example.com {some ssh bbs}}
+    {ssh://example.com/user/bob {some ssh bbs}}
+    {ssh://myuser@example.com {some ssh bbs - my user}}
+    {ssh://myuser@example.com/user/bob {some ssh bbs - my user}}
+    {ssh://example.com:2320 {some ssh bbs}}
+    {ssh://example.com:2320/user/bob {some ssh bbs}}
+    {ssh://myuser@example.com:2320 {some ssh bbs - my user}}
+    {ssh://myuser@example.com:2320/user/bob {some ssh bbs - my user}}
+  }
+
+  foreach url $urls {
+    lassign $url link userName
+    set m [gophser::menu url $m $link $userName]
+  }
+} -body {
+  gophser::menu render $m
+} -result [string cat \
+  "hsome ssh bbs\tURL:ssh://example.com\tlocalhost\t70\r\n" \
+  "hsome ssh bbs\tURL:ssh://example.com/user/bob\tlocalhost\t70\r\n" \
+  "hsome ssh bbs - my user\tURL:ssh://myuser@example.com\tlocalhost\t70\r\n" \
+  "hsome ssh bbs - my user\tURL:ssh://myuser@example.com/user/bob\tlocalhost\t70\r\n" \
+  "hsome ssh bbs\tURL:ssh://example.com:2320\tlocalhost\t70\r\n" \
+  "hsome ssh bbs\tURL:ssh://example.com:2320/user/bob\tlocalhost\t70\r\n" \
+  "hsome ssh bbs - my user\tURL:ssh://myuser@example.com:2320\tlocalhost\t70\r\n" \
+  "hsome ssh bbs - my user\tURL:ssh://myuser@example.com:2320/user/bob\tlocalhost\t70\r\n" \
+  ".\r\n"]
+
+
+test url-5 {Check rejects gophers protocol at the moment with an error} \
+-setup {
+  set m [gophser::menu create]
+} -body {
+  gophser::menu url $m gophers://example.com $userName
+} -returnCodes {error} -result {unsupported protocol: gophers}
+
+
 cleanupTests
+

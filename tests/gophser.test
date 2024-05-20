@@ -170,6 +170,43 @@ test init-6 {Check if using mount an error is returned if path not found} \
 } -result "3path not found\tFAKE\t(NULL)\t0"
 
 
+
+test init-7 {Check can handle URL: selector prefix} \
+-setup {
+  set configScript {
+    gophser::log suppress all
+    gophser::mount [file join [file normalize $repoRootDir] tests fixtures] "/"
+  }
+  set serverThread [TestHelpers::startServer $configScript]
+} -body {
+  # Ensures spaces are stripped from url
+  # TODO: Check if spaces should be stripped
+  set getA [TestHelpers::gopherGet localhost 7070 "URL:https://example.com/blog"]
+  set getB [TestHelpers::gopherGet localhost 7070 "URL: https://example.com/blog "]
+  list [expr {$getA eq $getB}] $getA
+} -cleanup {
+  TestHelpers::shutdownServer $serverThread]
+} -result [list 1 {
+  <HTML>
+    <HEAD>
+      <META HTTP-EQUIV="refresh" content="2;URL=https://example.com/blog">
+    </HEAD>
+    <BODY>
+      You are following a link from gopher to a web site.  You will be
+      automatically taken to the web site shortly.  If you do not get sent
+      there, please click
+      <A HREF="https://example.com/blog">here</A> to go to the web site.
+      <P>
+      The URL linked is:
+      <P>
+      <A HREF="https://example.com/blog">https://example.com/blog</A>
+      <P>
+      Thanks for using gopher!
+    </BODY>
+  </HTML>
+  }]
+
+
 test mount-1 {Returns error if localDir is a relative path} \
 -body {
   gophser::mount "fred/bob" "/"
