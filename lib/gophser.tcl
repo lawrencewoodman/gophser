@@ -237,6 +237,7 @@ proc gophser::stripSelectorPrefix {prefixPath selectorPath} {
 }
 
 
+# TODO: Put handlers in a separate file
 # selectorPath is the complete path requested.  This is assumed to have
 #              been made safe.
 # selectorMountPath is the path that localDir resides in the selector hierarchy
@@ -380,6 +381,7 @@ proc gophser::ListDir {args} {
 }
 
 
+# Put handlers in a separate file
 # Serve a html page for cases when the selector begins with 'URL:' followed by
 # a URL.  This is for clients that don't support the 'URL:' selector prefix so
 # that they can be served a html page which points to the URL.  This conforms

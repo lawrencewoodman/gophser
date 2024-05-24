@@ -110,6 +110,7 @@ proc gophser::cache::Cleanup {cache} {
 # Licensed under an MIT licence.  Please see LICENCE.md for details.
 #
 
+package require hetdb
 
 namespace eval gophser::gophermap {
   namespace export {[a-z]*}
@@ -117,6 +118,7 @@ namespace eval gophser::gophermap {
   variable menu
   variable descriptions
   variable includeDir [list]
+  variable databases [dict create]
 }
 
 
@@ -124,6 +126,16 @@ namespace eval gophser::gophermap {
 proc gophser::gophermap::setIncludeDir {_includeDir} {
   variable includeDir
   set includeDir $_includeDir
+}
+
+
+# TODO: This or pass config to process?
+proc gophser::gophermap::addDatabase {filename nickname} {
+  variable databases
+  if {[catch {hetdb read $filename} db]} {
+    return -code error $db
+  }
+  dict set databases $nickname $db
 }
 
 
@@ -140,9 +152,12 @@ proc gophser::gophermap::process {_menu localDir selectorMountPath selectorSubPa
 
   $interp alias menu ::gophser::gophermap::Menu
   $interp alias describe ::gophser::gophermap::Describe
+  # TODO: Should dir be part of menu and there also be another dir for returning the directory entries?
   $interp alias dir ::gophser::gophermap::Dir $localDir $selectorMountPath $selectorSubPath
   $interp alias header ::gophser::gophermap::Header
   $interp alias source ::gophser::gophermap::Source $interp
+  $interp alias db ::gophser::gophermap::Db $interp
+  $interp alias log ::gophser::gophermap::Log
 
   set gophermapPath [file join $selectorLocalDir gophermap]
   if {[catch {$interp invokehidden source $gophermapPath} err]} {
@@ -241,6 +256,64 @@ proc gophser::gophermap::Source {interp filename} {
   return [$interp eval $src]
 }
 
+
+# TODO: Test thoroughly
+# TODO: Find way to not have to rely on hetdb, instead allow calling code to
+# TODO: make that connection to a database
+proc gophser::gophermap::Db {interp command args} {
+  switch -- $command {
+    for {
+      switch [llength $args] {
+        4 {
+          lassign $args db tablename fields body
+          set varname $tablename
+        }
+        5 {
+          lassign $args db tablename fields varname body
+        }
+        default {
+          return -code error "wrong # args: should be \"db for db tablename fields ?varname? body\""
+        }
+      }
+      set retcode [catch {
+        hetdb for $db $tablename $fields row {
+          $interp eval [list set $varname $row]
+          $interp eval $body
+        }
+      } res options]
+      # TODO: test this works in the gophermap
+      # Codes: 0 Normal return, 1 Error, 2 return command invoked
+      #        3 break command invoked, 4 continue command invoked
+      switch -- $retcode {
+        0 -
+        4       {}
+        3       {return}
+        default {return -code $retcode $res}
+      }
+    }
+    open {
+      variable databases
+      if {[llength $args] != 1} {
+        return -code error "wrong # args: should be \"db read dbname\""
+
+      }
+      lassign $args dbname
+      if {$dbname ni $databases} {
+        return -code error "database \"$dbname\" doesn't exist"
+      }
+      return [dict get $databases $dbname]
+    }
+    default {
+      return -code error "unknown or ambiguous subcommand \""$command\"": must be for or read"
+    }
+  }
+}
+
+
+# TODO: Test this and check this is the form we would like to use in a gophermap
+proc gophser::gophermap::Log {command args} {
+  gophser::log $command {*}$args
+}
 
 # Gopher Server Handling Code
 #
@@ -481,6 +554,7 @@ proc gophser::stripSelectorPrefix {prefixPath selectorPath} {
 }
 
 
+# TODO: Put handlers in a separate file
 # selectorPath is the complete path requested.  This is assumed to have
 #              been made safe.
 # selectorMountPath is the path that localDir resides in the selector hierarchy
@@ -624,6 +698,7 @@ proc gophser::ListDir {args} {
 }
 
 
+# Put handlers in a separate file
 # Serve a html page for cases when the selector begins with 'URL:' followed by
 # a URL.  This is for clients that don't support the 'URL:' selector prefix so
 # that they can be served a html page which points to the URL.  This conforms

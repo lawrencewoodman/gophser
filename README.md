@@ -16,6 +16,7 @@ Requirements
 ------------
 * Tcl 8.6+
 * Tcllib
+* [hetdb](https://github.com/lawrencewoodman/hetdb)
 
 
 Build
