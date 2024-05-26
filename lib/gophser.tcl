@@ -113,7 +113,7 @@ proc gophser::ClientConnect {sock host port} {
 # TODO: Handle client sending too much data
 proc gophser::ReadSelector {sock} {
   variable sendStatus
-  if {[catch {gets $sock selector} len] || [eof $sock]} {
+  if {[catch {SafeGets $sock 255 selector} len] || [eof $sock]} {
       catch {close $sock}
   } elseif {$len >= 0} {
     set isErr [catch {
@@ -130,6 +130,31 @@ proc gophser::ReadSelector {sock} {
       log error $err
     }
   }
+}
+
+
+# TODO: Add a timeout, probably by switching to non blocking io
+# TODO: although channel should be non blocking - check by testing
+# TODO: with a few byte selector without a '\n' at the end and see
+# TODO: what happens.
+# Like ::gets but with a maxSize parameter to prevent a client from sending
+# a huge amount of data leading to a DoS.
+proc gophser::SafeGets {channelId maxSize varname} {
+  upvar $varname result
+  set result ""
+  for {set i 0} {$i < $maxSize} {incr i} {
+    set char [read $channelId 1]
+    if {$char eq ""} {
+      # TODO: Better error here?
+      # TODO: Test against gets
+      error EOF
+    } elseif {[string first $char "\n"] == -1} {
+      append result $char
+    } else {
+      break
+    }
+  }
+  return $i
 }
 
 
