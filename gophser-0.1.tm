@@ -139,7 +139,7 @@ proc gophser::gophermap::addDatabase {filename nickname} {
 }
 
 
-proc gophser::gophermap::process {_menu localDir selectorMountPath selectorSubPath} {
+proc gophser::gophermap::process {_menu localDir selector selectorMountPath selectorSubPath} {
   variable menu
   variable descriptions
 
@@ -161,8 +161,9 @@ proc gophser::gophermap::process {_menu localDir selectorMountPath selectorSubPa
 
   set gophermapPath [file join $selectorLocalDir gophermap]
   if {[catch {$interp invokehidden source $gophermapPath} err]} {
-    return -code error "error processing: $gophermapPath, for selector: [file join $selectorMountPath $selectorSubPath], $err"
+    return -code error "error processing: $gophermapPath, for selector: $selector, $err"
   }
+
   return $menu
 }
 
@@ -277,6 +278,7 @@ proc gophser::gophermap::Db {interp command args} {
       }
       set retcode [catch {
         hetdb for $db $tablename $fields row {
+          # TODO: do we need list here?
           $interp eval [list set $varname $row]
           $interp eval $body
         }
@@ -338,6 +340,8 @@ proc gophser::shutdown {} {
 }
 
 
+# mount localDir selectorMountPath
+#
 # localDir: The local absolute directory path
 # selectorMountPath: The path for the selector which must not contain wildcards
 proc gophser::mount {localDir selectorMountPath} {
@@ -718,7 +722,7 @@ proc gophser::ServePath {localDir selectorMountPath selectorPath} {
       set menu [menu create localhost 7070]
       # TODO: Rename gophermap
       if {[file exists [file join $selectorLocalPath gophermap]]} {
-        set menu [gophermap::process $menu $localDir $selectorMountPath $selectorSubPath]
+        set menu [gophermap::process $menu $localDir $selectorPath $selectorMountPath $selectorSubPath]
       } else {
         set menu [ListDir $menu $localDir $selectorMountPath $selectorSubPath]
       }

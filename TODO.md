@@ -20,7 +20,8 @@
 * Random thoughts from email
   - Change router to work with mount points                                                                                                       
   - Remove need for stripSelectorPrefix                                                                                                           
-  - Pass mount point and sub selector to handler  
+  - Pass mount point and sub selector to handler
+* Have a selector command which works like file but joins and splits elements of a selector always using / as path separator if wanted
 
 
 ## Future Features
@@ -35,10 +36,6 @@
   - Whether directories within /home are mounted
   - Whether tcl gopher server is within mounted directories and has safe permissions
   - Whether the executable is world readable
-
-## cache
-* Consider having a limit of the number of items in the cache and when exceeded run Cleanup
-  - Could also base this on size but that might be slower can cause shimmering problems
 
 
 ## Titles
@@ -59,3 +56,5 @@
 ### Cache
 * Test Cleanup is called within fetch
 * Test Cleanp reduces memory as expected
+* Consider having a limit of the number of items in the cache and when exceeded run Cleanup
+  - Could also base this on size but that might be slower can cause shimmering problems

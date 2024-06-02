@@ -21,6 +21,8 @@ proc gophser::shutdown {} {
 }
 
 
+# mount localDir selectorMountPath
+#
 # localDir: The local absolute directory path
 # selectorMountPath: The path for the selector which must not contain wildcards
 proc gophser::mount {localDir selectorMountPath} {

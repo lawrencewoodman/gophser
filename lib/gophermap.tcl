@@ -36,7 +36,7 @@ proc gophser::gophermap::addDatabase {filename nickname} {
 }
 
 
-proc gophser::gophermap::process {_menu localDir selectorMountPath selectorSubPath} {
+proc gophser::gophermap::process {_menu localDir selector selectorMountPath selectorSubPath} {
   variable menu
   variable descriptions
 
@@ -58,8 +58,9 @@ proc gophser::gophermap::process {_menu localDir selectorMountPath selectorSubPa
 
   set gophermapPath [file join $selectorLocalDir gophermap]
   if {[catch {$interp invokehidden source $gophermapPath} err]} {
-    return -code error "error processing: $gophermapPath, for selector: [file join $selectorMountPath $selectorSubPath], $err"
+    return -code error "error processing: $gophermapPath, for selector: $selector, $err"
   }
+
   return $menu
 }
 
@@ -174,6 +175,7 @@ proc gophser::gophermap::Db {interp command args} {
       }
       set retcode [catch {
         hetdb for $db $tablename $fields row {
+          # TODO: do we need list here?
           $interp eval [list set $varname $row]
           $interp eval $body
         }

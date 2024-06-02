@@ -36,7 +36,7 @@ proc gophser::ServePath {localDir selectorMountPath selectorPath} {
       set menu [menu create localhost 7070]
       # TODO: Rename gophermap
       if {[file exists [file join $selectorLocalPath gophermap]]} {
-        set menu [gophermap::process $menu $localDir $selectorMountPath $selectorSubPath]
+        set menu [gophermap::process $menu $localDir $selectorPath $selectorMountPath $selectorSubPath]
       } else {
         set menu [ListDir $menu $localDir $selectorMountPath $selectorSubPath]
       }

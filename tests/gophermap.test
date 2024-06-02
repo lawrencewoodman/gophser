@@ -16,8 +16,9 @@ test process-1 {Check render adds correct .<cr><lf> ending to menu} \
 -setup {
   set m [gophser::menu create]
   set fixturesDir [file join [TestHelpers::getRepoRootDir] tests fixtures]
+  set selector "/"
 } -body {
-  set m [gophser::gophermap::process $m $fixturesDir "/" ""]
+  set m [gophser::gophermap::process $m $fixturesDir $selector "/" ""]
   gophser::menu render $m
 } -result [string cat \
   "0README.md - find all about this directory\tREADME.md\tlocalhost\t70\r\n" \
@@ -44,8 +45,9 @@ test process-2 {Check returns errors properly} \
   set fixturesDir [file join [TestHelpers::getRepoRootDir] tests fixtures ]
   set errorDir [file join $fixturesDir error]
   set m [gophser::menu create]
+  set selector "/"
 } -body {
-  set m [gophser::gophermap::process $m $errorDir "/" ""]
+  set m [gophser::gophermap::process $m $errorDir $selector "/" ""]
   gophser::menu render $m
 } -returnCodes {error} -result {error processing: /home/lorry/data/dev/lib/gophser/tests/fixtures/error/gophermap, for selector: /, can't read "b": no such variable}
 
@@ -54,8 +56,9 @@ test process-3 {Check headers display properly} \
 -setup {
   set m [gophser::menu create]
   set fixturesDir [file join [TestHelpers::getRepoRootDir] tests fixtures titles]
+  set selector "/"
 } -body {
-  set m [gophser::gophermap::process $m $fixturesDir "/" ""]
+  set m [gophser::gophermap::process $m $fixturesDir $selector "/" ""]
   gophser::menu render $m
 } -result [string cat \
   "i============================\tFAKE\tlocalhost\t70\r\n" \
@@ -89,8 +92,9 @@ test process-4 {Check source loads and evals a file} \
   # TODO: Put includeDir within some sort of config under gophser::
   gophser::gophermap::setIncludeDir $includesDir
   set m [gophser::menu create]
+  set selector "/"
 } -body {
-  set m [gophser::gophermap::process $m $sourcingDir "/" ""]
+  set m [gophser::gophermap::process $m $sourcingDir $selector "/" ""]
   gophser::menu render $m
 } -result [string cat \
   "i== Sourcing ==\tFAKE\tlocalhost\t70\r\n" \
