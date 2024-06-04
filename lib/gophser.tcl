@@ -51,6 +51,7 @@ proc gophser::mount {localDir selectorMountPath} {
     return -code error "selector can not contain wildcards"
   }
 
+  # TODO: relook at whether safeSelector use is appropriate here
   set selectorMountPath [router::safeSelector $selectorMountPath]
   if {$selectorMountPath eq "/"} {
     set selectorMountPathGlob "/*"
@@ -59,6 +60,26 @@ proc gophser::mount {localDir selectorMountPath} {
   }
 
   route $selectorMountPathGlob [list gophser::ServePath $localDir $selectorMountPath]
+}
+
+
+proc gophser::provideLinkDir {directoryDB selectorMountPath} {
+  if {[string match {*[*?]*} $selectorMountPath] ||
+      [string match {*\[*} $selectorMountPath] ||
+      [string match {*\]*} $selectorMountPath]} {
+    return -code error "selector can not contain wildcards"
+  }
+
+  # TODO: relook at whether safeSelector use is appropriate here
+  set selectorMountPath [router::safeSelector $selectorMountPath]
+  if {$selectorMountPath eq "/"} {
+    set selectorMountPathGlob "/*"
+  } else {
+    set selectorMountPathGlob "$selectorMountPath/*"
+  }
+  # TODO: Find a better way of doing this
+  route $selectorMountPathGlob [list gophser::ServeLinkDirectory $directoryDB $selectorMountPath]
+  route $selectorMountPath [list gophser::ServeLinkDirectory $directoryDB $selectorMountPath]
 }
 
 

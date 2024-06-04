@@ -370,6 +370,7 @@ proc gophser::mount {localDir selectorMountPath} {
     return -code error "selector can not contain wildcards"
   }
 
+  # TODO: relook at whether safeSelector use is appropriate here
   set selectorMountPath [router::safeSelector $selectorMountPath]
   if {$selectorMountPath eq "/"} {
     set selectorMountPathGlob "/*"
@@ -378,6 +379,26 @@ proc gophser::mount {localDir selectorMountPath} {
   }
 
   route $selectorMountPathGlob [list gophser::ServePath $localDir $selectorMountPath]
+}
+
+
+proc gophser::provideLinkDir {directoryDB selectorMountPath} {
+  if {[string match {*[*?]*} $selectorMountPath] ||
+      [string match {*\[*} $selectorMountPath] ||
+      [string match {*\]*} $selectorMountPath]} {
+    return -code error "selector can not contain wildcards"
+  }
+
+  # TODO: relook at whether safeSelector use is appropriate here
+  set selectorMountPath [router::safeSelector $selectorMountPath]
+  if {$selectorMountPath eq "/"} {
+    set selectorMountPathGlob "/*"
+  } else {
+    set selectorMountPathGlob "$selectorMountPath/*"
+  }
+  # TODO: Find a better way of doing this
+  route $selectorMountPathGlob [list gophser::ServeLinkDirectory $directoryDB $selectorMountPath]
+  route $selectorMountPath [list gophser::ServeLinkDirectory $directoryDB $selectorMountPath]
 }
 
 
@@ -716,6 +737,7 @@ proc gophser::ServePath {localDir selectorMountPath selectorPath} {
     # TODO: Support caching when file isn't too big?
     return [list text [ReadFile $path]]
   } elseif {[file isdirectory $path]} {
+    # TODO: Should this be moved above?
     set menuText [cache fetch cache $selectorPath]
     if {$menuText eq {}} {
       set selectorLocalPath [MakeSelectorLocalPath $localDir $selectorSubPath]
@@ -732,6 +754,61 @@ proc gophser::ServePath {localDir selectorMountPath selectorPath} {
     return [list text $menuText]
   }
   error "TODO: what is this?"
+}
+
+
+# selectorMountPath is the path that localDir resides in the selector hierarchy
+#                   TODO: change to selectorPrefix?
+# selector is the complete path requested.  This is assumed to have
+#              been made safe.
+# TODO: Rename?
+# TODO: Format for linkDirectory  dict or hetdb?
+# TODO: Add a description to link directory entries
+# TODO: Add an intro text for first page
+# TODO: Add layout in which to list links or intro text for the directory
+proc gophser::ServeLinkDirectory {directoryDB selectorMountPath selector} {
+  # TODO: Support caching? - needs testing
+  variable cache
+  set menuText [cache fetch cache $selector]
+  if {$menuText eq {}} {
+    set selectorSubPath [stripSelectorPrefix $selectorMountPath $selector]
+    set selectorTags [split $selectorSubPath "/"]
+    # TODO: Need to find a better way of handling default host and port here and below
+    set menu [menu create localhost 7070]
+    if {$selectorSubPath eq ""} {
+      # TODO: Display an intro text - perhaps with some links
+      # TODO: Sort into alphabetical order
+      hetdb for $directoryDB tag {name title} {
+        lassign [dict values $tag] name title
+        set menu [menu url $menu "gopher://localhost:7070/1$selectorMountPath/$name" $title]
+      }
+    } else {
+      set menu [menu info $menu "Tags: [join $selectorTags ", "]"]
+      # TODO: add a menu header command to make above a title
+      set menu [menu info $menu ""]
+      # TODO: Change menu command to use upvar
+      # TODO: Change for command to prefix vars with table name and be able to
+      # TODO: select any valid field with missing fields returned blank
+      hetdb for $directoryDB link {url title tags} {
+        lassign [dict values $link] url title tags
+        set tagsMatch true
+        foreach tag $selectorTags {
+          if {$tag ni $tags} {
+            set tagsMatch false
+            break
+          }
+        }
+        if {$tagsMatch} {
+          set menu [menu url $menu $url $title]
+        } else {
+          return [list error "path not found"]
+        }
+      }
+    }
+    set menuText [menu render $menu]
+    cache store cache $selector $menuText
+  }
+  return [list text $menuText]
 }
 
 
