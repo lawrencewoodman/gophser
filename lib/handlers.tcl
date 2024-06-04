@@ -72,8 +72,7 @@ proc gophser::ServeLinkDirectory {directoryDB selectorMountPath selector} {
       # TODO: Display an intro text - perhaps with some links
       # TODO: Sort into alphabetical order
       hetdb for $directoryDB tag {name title} {
-        lassign [dict values $tag] name title
-        set menu [menu url $menu "gopher://localhost:7070/1$selectorMountPath/$name" $title]
+        set menu [menu url $menu "gopher://localhost:7070/1$selectorMountPath/$tag_name" $tag_title]
       }
     } else {
       set menu [menu info $menu "Tags: [join $selectorTags ", "]"]
@@ -83,16 +82,15 @@ proc gophser::ServeLinkDirectory {directoryDB selectorMountPath selector} {
       # TODO: Change for command to prefix vars with table name and be able to
       # TODO: select any valid field with missing fields returned blank
       hetdb for $directoryDB link {url title tags} {
-        lassign [dict values $link] url title tags
         set tagsMatch true
         foreach tag $selectorTags {
-          if {$tag ni $tags} {
+          if {$tag ni $link_tags} {
             set tagsMatch false
             break
           }
         }
         if {$tagsMatch} {
-          set menu [menu url $menu $url $title]
+          set menu [menu url $menu $link_url $link_title]
         } else {
           return [list error "path not found"]
         }
