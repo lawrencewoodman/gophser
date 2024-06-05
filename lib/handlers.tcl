@@ -6,6 +6,9 @@
 #
 
 
+package require hetdb
+
+
 # selectorPath is the complete path requested.  This is assumed to have
 #              been made safe.
 # selectorMountPath is the path that localDir resides in the selector hierarchy

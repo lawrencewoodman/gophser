@@ -36,12 +36,20 @@
   - Whether directories within /home are mounted
   - Whether tcl gopher server is within mounted directories and has safe permissions
   - Whether the executable is world readable
+* Turn off caching globally to aid creating a gopherhole as updates will appear instantly
 
 
 ## Titles
+* Warn if H1 used more than once on a page
 * List different styles of titles such as
   === This is a Title ===
   --- This is a Smaller Title ---
+
+  = This is a title ===========================================
+
+  - This is a title -------------------------------------------
+
+  = TechTinkering ==============================================
 
   THIS IS ALSO A TITLE
 
