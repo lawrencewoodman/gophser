@@ -1,8 +1,0 @@
-source "welcome.inc"
-
-menu info "== Sourcing =="
-menu info ""
-welcome Peter
-
-menu info ""
-menu info "The end"

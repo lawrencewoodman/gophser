@@ -27,7 +27,7 @@ proc gophser::menu::info {menu text} {
 
 
 # Supports protocols: gopher, ssh, http, https
-proc gophser::menu::url {menu url userName} {
+proc gophser::menu::url {menu userName url} {
   lassign [SplitURL $url] protocol host port path type
 
   switch $protocol {

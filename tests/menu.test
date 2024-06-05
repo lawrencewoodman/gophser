@@ -75,7 +75,7 @@ test url-1 {Check url handles gopher protocol} \
 
   foreach url $urls {
     lassign $url link userName
-    set m [gophser::menu url $m $link $userName]
+    set m [gophser::menu url $m $userName $link]
   }
 } -body {
   gophser::menu render $m
@@ -111,7 +111,7 @@ test url-2 {Check url handles http protocol} \
 
   foreach url $urls {
     lassign $url link userName
-    set m [gophser::menu url $m $link $userName]
+    set m [gophser::menu url $m $userName $link]
   }
 } -body {
   gophser::menu render $m
@@ -143,7 +143,7 @@ test url-3 {Check url handles https protocol} \
 
   foreach url $urls {
     lassign $url link userName
-    set m [gophser::menu url $m $link $userName]
+    set m [gophser::menu url $m $userName $link]
   }
 } -body {
   gophser::menu render $m
@@ -175,7 +175,7 @@ test url-4 {Check url handles ssh protocol} \
 
   foreach url $urls {
     lassign $url link userName
-    set m [gophser::menu url $m $link $userName]
+    set m [gophser::menu url $m $userName $link]
   }
 } -body {
   gophser::menu render $m
@@ -195,7 +195,7 @@ test url-5 {Check rejects gophers protocol at the moment with an error} \
 -setup {
   set m [gophser::menu create]
 } -body {
-  gophser::menu url $m gophers://example.com $userName
+  gophser::menu url $m "An example gophers protocol URL" gophers://example.com
 } -returnCodes {error} -result {unsupported protocol: gophers}
 
 

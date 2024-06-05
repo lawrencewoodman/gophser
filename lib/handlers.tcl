@@ -75,7 +75,7 @@ proc gophser::ServeLinkDirectory {directoryDB selectorMountPath selector} {
       # TODO: Display an intro text - perhaps with some links
       # TODO: Sort into alphabetical order
       hetdb for $directoryDB tag {name title} {
-        set menu [menu url $menu "gopher://localhost:7070/1$selectorMountPath/$tag_name" $tag_title]
+        set menu [menu url $menu $tag_title "gopher://localhost:7070/1$selectorMountPath/$tag_name"]
       }
     } else {
       set menu [menu info $menu "Tags: [join $selectorTags ", "]"]
@@ -93,7 +93,7 @@ proc gophser::ServeLinkDirectory {directoryDB selectorMountPath selector} {
           }
         }
         if {$tagsMatch} {
-          set menu [menu url $menu $link_url $link_title]
+          set menu [menu url $menu $link_title $link_url]
         } else {
           return [list error "path not found"]
         }

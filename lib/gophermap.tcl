@@ -12,15 +12,7 @@ namespace eval gophser::gophermap {
 
   variable menu
   variable descriptions
-  variable includeDir [list]
   variable databases [dict create]
-}
-
-
-# TODO: This or pass config to process?
-proc gophser::gophermap::setIncludeDir {_includeDir} {
-  variable includeDir
-  set includeDir $_includeDir
 }
 
 
@@ -33,15 +25,22 @@ proc gophser::gophermap::process {_menu localDir selector selectorMountPath sele
   set descriptions [dict create]
 
   set interp [interp create -safe]
-  $interp eval {unset {*}[info vars]}
 
-  $interp alias menu ::gophser::gophermap::Menu
-  $interp alias describe ::gophser::gophermap::Describe
-  # TODO: Should dir be part of menu and there also be another dir for returning the directory entries?
+  # Remove all the variables and commands from the interpreter
+  $interp eval {unset {*}[info vars]}
+  foreach command [$interp eval {info commands}] {
+    $interp hide $command
+  }
+
+  $interp alias desc ::gophser::gophermap::Describe
   $interp alias dir ::gophser::gophermap::Dir $localDir $selectorMountPath $selectorSubPath
-  $interp alias header ::gophser::gophermap::Header
-  $interp alias source ::gophser::gophermap::Source $interp
+  $interp alias h1 ::gophser::gophermap::H1
+  $interp alias h2 ::gophser::gophermap::H2
+  $interp alias h3 ::gophser::gophermap::H3
+  $interp alias info ::gophser::gophermap::Info
+  $interp alias item ::gophser::gophermap::Item
   $interp alias log ::gophser::gophermap::Log
+  $interp alias url ::gophser::gophermap::Url
 
   set gophermapPath [file join $selectorLocalDir gophermap]
   if {[catch {$interp invokehidden source $gophermapPath} err]} {
@@ -52,7 +51,9 @@ proc gophser::gophermap::process {_menu localDir selector selectorMountPath sele
 }
 
 
-proc gophser::gophermap::Menu {command args} {
+# TODO: Rethink this
+# TODO: Should probably turn the args into vars before passing to maintain interface
+proc gophser::gophermap::Item {command args} {
   variable menu
   switch -- $command {
     info {
@@ -65,9 +66,6 @@ proc gophser::gophermap::Menu {command args} {
     menu {
       # TODO: ensure can only include files in the current location?
       set menu [::gophser::menu::item $menu menu {*}$args]
-    }
-    url {
-      set menu [::gophser::menu::url $menu {*}$args]
     }
     default {
       return -code error "menu: invalid command: $command"
@@ -84,31 +82,48 @@ proc gophser::gophermap::Describe {filename userName {description {}}} {
 }
 
 
-proc gophser::gophermap::Header {level text} {
+proc gophser::gophermap::H1 {text} {
   set textlen [string length $text]
-  if {$level == 1} {
-    if {$textlen > 65} {
-      # TODO: Generate a warning
-    }
-    Menu info [string repeat "=" [expr {$textlen+4}]]
-    Menu info "= $text ="
-    Menu info [string repeat "=" [expr {$textlen+4}]]
-    Menu info ""
-    return
-  } elseif {$level == 2} {
-    set underlineCh "="
-  } elseif {$level == 3} {
-    set underlineCh "-"
-  } else {
-    return -code "invalid header level"
+  if {$textlen > 65} {
+    # TODO: Generate a warning
   }
+  # TODO: Should we call menu:: directory for H1, H2 and H3
+  Item info [string repeat "=" [expr {$textlen+4}]]
+  Item info "= $text ="
+  Item info [string repeat "=" [expr {$textlen+4}]]
+  Item info ""
+}
 
+
+proc gophser::gophermap::H2 {text} {
+  set textlen [string length $text]
   if {$textlen > 69} {
     # TODO: Generate a warning
   }
-  Menu info $text
-  Menu info [string repeat $underlineCh $textlen]
-  Menu info ""
+  set underlineCh "="
+
+  Item info $text
+  Item info [string repeat $underlineCh $textlen]
+  Item info ""
+}
+
+
+proc gophser::gophermap::H3 {text} {
+  set textlen [string length $text]
+  if {$textlen > 69} {
+    # TODO: Generate a warning
+  }
+  set underlineCh "-"
+
+  Item info $text
+  Item info [string repeat $underlineCh $textlen]
+  Item info ""
+}
+
+
+proc gophser::gophermap::Info {text} {
+  variable menu
+  set menu [::gophser::menu::info $menu $text]
 }
 
 
@@ -123,27 +138,14 @@ proc gophser::gophermap::Dir {localDir selectorMountPath selectorSubPath} {
 }
 
 
-proc gophser::gophermap::Source {interp filename} {
-  variable includeDir
-  # TODO: Make sure filename doesn't include .. to allow moving outside of include path
-  set fullFilename [file join $includeDir $filename]
-  set isErr [catch {
-    set fd [open $fullFilename r]
-    set src [::read $fd]
-    close $fd
-  } err]
-  if {$isErr} {
-    # TODO: Could this reveal the whole path to filename and do we want this?
-    # TODO: Log this error
-    return -code error $err
-  }
-  # TODO: Test what this returns and return errors properly
-  return [$interp eval $src]
+# TODO: Test this and check this is the form we would like to use in a gophermap
+# TODO: Should probably turn the args into vars before passing to maintain interface
+proc gophser::gophermap::Log {command args} {
+  gophser::log $command {*}$args
 }
 
 
-
-# TODO: Test this and check this is the form we would like to use in a gophermap
-proc gophser::gophermap::Log {command args} {
-  gophser::log $command {*}$args
+proc gophser::gophermap::Url {userName url } {
+  variable menu
+  set menu [::gophser::menu::url $menu $userName $url]
 }

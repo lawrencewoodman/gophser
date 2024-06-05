@@ -24,8 +24,6 @@ test process-1 {Check render adds correct .<cr><lf> ending to menu} \
   "0README.md - find all about this directory\tREADME.md\tlocalhost\t70\r\n" \
   "1The example.com site\t/\texample.com\t70\r\n" \
   "1error\t/error\tlocalhost\t70\r\n" \
-  "1includes\t/includes\tlocalhost\t70\r\n" \
-  "1sourcing\t/sourcing\tlocalhost\t70\r\n" \
   "1titles\t/titles\tlocalhost\t70\r\n" \
   "i\tFAKE\tlocalhost\t70\r\n" \
   "0Documentation\t/docs.txt\tlocalhost\t70\r\n" \
@@ -83,26 +81,6 @@ test process-3 {Check headers display properly} \
   "i\tFAKE\tlocalhost\t70\r\n" \
   ".\r\n"]
 
-
-test process-4 {Check source loads and evals a file} \
--setup {
-  set fixturesDir [file join [TestHelpers::getRepoRootDir] tests fixtures ]
-  set sourcingDir [file join $fixturesDir sourcing]
-  set includesDir [file join $fixturesDir includes]
-  # TODO: Put includeDir within some sort of config under gophser::
-  gophser::gophermap::setIncludeDir $includesDir
-  set m [gophser::menu create]
-  set selector "/"
-} -body {
-  set m [gophser::gophermap::process $m $sourcingDir $selector "/" ""]
-  gophser::menu render $m
-} -result [string cat \
-  "i== Sourcing ==\tFAKE\tlocalhost\t70\r\n" \
-  "i\tFAKE\tlocalhost\t70\r\n" \
-  "iWelcome Peter\tFAKE\tlocalhost\t70\r\n" \
-  "i\tFAKE\tlocalhost\t70\r\n" \
-  "iThe end\tFAKE\tlocalhost\t70\r\n" \
-  ".\r\n"]
 
 
 cleanupTests
