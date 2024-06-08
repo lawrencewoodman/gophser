@@ -45,17 +45,17 @@ proc gophser::cache::create {} {
   return [dict create store {} details [dict create cleanupTime [clock seconds]]]
 }
 
-# Store data for selectorPath in the cache
-proc gophser::cache::store {cacheVar selectorPath data {keepSeconds 60}} {
+# Store data for selector in the cache
+proc gophser::cache::store {cacheVar selector data {keepSeconds 60}} {
   upvar $cacheVar cache
   set expireTime [clock add [clock seconds] $keepSeconds seconds]
-  dict set cache store $selectorPath [list $expireTime $data]
+  dict set cache store $selector [list $expireTime $data]
 }
 
 
-# Fetch data for selectorPath from the cache
+# Fetch data for selector from the cache
 # Return: data or {} is not in cache
-proc gophser::cache::fetch {cacheVar selectorPath} {
+proc gophser::cache::fetch {cacheVar selector} {
   upvar $cacheVar cache
   set currentTime [clock seconds]
   set cleanupTime [dict get $cache details cleanupTime]
@@ -65,15 +65,15 @@ proc gophser::cache::fetch {cacheVar selectorPath} {
     set cache [Cleanup $cache]
   }
 
-  if {![dict exists $cache store $selectorPath]} {
+  if {![dict exists $cache store $selector]} {
     return {}
   }
 
-  lassign [dict get $cache store $selectorPath] expireTime data
+  lassign [dict get $cache store $selector] expireTime data
 
   # Remove entry if expired
   if {$currentTime > $expireTime} {
-    dict unset cache store $selectorPath
+    dict unset cache store $selector
     return {}
   }
   return $data
@@ -87,15 +87,15 @@ proc gophser::cache::Cleanup {cache} {
   set store [dict get $cache store]
   dict set cache details cleanupTime [clock seconds]
   set expiredSelectors [list]
-  dict for {selectorPath entry} $store {
+  dict for {selector entry} $store {
     lassign $entry expireTime
     # If current time is past the expire time
     if {$currentTime > $expireTime} {
-      lappend expiredSelectors $selectorPath
+      lappend expiredSelectors $selector
     }
   }
-  foreach selectorPath $expiredSelectors {
-    dict unset cache store $selectorPath
+  foreach selector $expiredSelectors {
+    dict unset cache store $selector
   }
   return $cache
 }
