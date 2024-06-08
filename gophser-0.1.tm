@@ -234,10 +234,9 @@ proc gophser::gophermap::Info {text} {
 proc gophser::gophermap::Dir {localDir selectorMountPath selectorSubPath} {
   variable menu
   variable descriptions
-
   set menu [::gophser::ListDir -descriptions $descriptions \
                                $menu $localDir \
-                               $selectorMountPath $selectorSubPath]
+                               $selectorMountPath [string trimleft $selectorSubPath "/"]]
 }
 
 
@@ -280,8 +279,10 @@ proc gophser::shutdown {} {
 #
 # localDir: The local absolute directory path
 # selectorMountPath: The path for the selector which must not contain wildcards
+#  TODO: Strip trailing slash on selectorMountPath and test
 proc gophser::mount {localDir selectorMountPath} {
   set localDir [string trim $localDir]
+  set selectorMountPath [selectorToSafeFilePath $selectorMountPath]
 
   if {$localDir eq ""} {
     return -code error "local dir blank"
@@ -307,13 +308,14 @@ proc gophser::mount {localDir selectorMountPath} {
   }
 
   # TODO: relook at whether safeSelector use is appropriate here
-  set selectorMountPath [router::safeSelector $selectorMountPath]
   if {$selectorMountPath eq "/"} {
-    set selectorMountPathGlob "/*"
+    set selectorMountPathGlob "*"
   } else {
     set selectorMountPathGlob "$selectorMountPath/*"
   }
 
+  # Match with and without trailing slash
+  route $selectorMountPath [list gophser::ServePath $localDir $selectorMountPath]
   route $selectorMountPathGlob [list gophser::ServePath $localDir $selectorMountPath]
 }
 
@@ -326,7 +328,6 @@ proc gophser::provideLinkDir {directoryDB selectorMountPath} {
   }
 
   # TODO: relook at whether safeSelector use is appropriate here
-  set selectorMountPath [router::safeSelector $selectorMountPath]
   if {$selectorMountPath eq "/"} {
     set selectorMountPathGlob "/*"
   } else {
@@ -376,6 +377,39 @@ proc gophser::log {command args} {
 }
 
 
+# Turns a selector into a safe file path
+# It is important that selectors are passed through this before being used
+# as a file path.
+# TODO: Only allow absolute paths
+# TODO: Strip out anything including and past a tab
+# Convert spaces to % notation
+# Resolves .. without going past root of path
+# Removes . directory element
+# Supports directory elements beginning with ~
+# This ensures there is a leading "/"
+proc gophser::selectorToSafeFilePath {selector} {
+  set selector [string map {" " "%20"} $selector]
+  set elements [file split $selector]
+  set path [list]
+  foreach e $elements {
+    if {$e eq ".."} {
+      set path [lreplace $path end end]
+    } elseif {$e ne "." && $e ne "/"} {
+      if {[string match {./*} $e]} {
+        set e [string range $e 2 end]
+      }
+      lappend path $e
+    }
+  }
+
+  if {[llength $path] == 0} {
+    return {/}
+  }
+
+  return "/[file join {*}$path]"
+}
+
+
 proc gophser::ClientConnect {sock host port} {
   variable configOptions
   variable sendStatus
@@ -395,7 +429,6 @@ proc gophser::ReadSelector {sock} {
       catch {close $sock}
   } elseif {$len >= 0} {
     set isErr [catch {
-      set selector [router::safeSelector $selector]
       if {![HandleSelector $sock $selector]} {
         log warning "selector not found: $selector"
         SendError $sock "path not found"
@@ -500,6 +533,7 @@ proc gophser::SendTextWhenWritable {sock} {
   dict set sendMsgs $sock [string range $msg 10001 end]
 
   if {[catch {puts -nonewline $sock $str} error]} {
+    # TODO: handle error differently
     puts stderr "Error writing to socket: $error"
     catch {close $sock}
   }
@@ -523,22 +557,16 @@ proc gophser::SendError {sock msg} {
 }
 
 
-# Remove the prefix from the selectorPath
+# Remove the prefix from the selector
 # This is useful to remove mount points and to access variables
 # passed in the selector path.
 # TODO: Should this be exported?
-proc gophser::stripSelectorPrefix {prefixPath selectorPath} {
-  set prefixPathParts [file split $prefixPath]
-  set pathParts [file split $selectorPath]
-  set compPath [file join {*}[lrange $pathParts 0 [llength $prefixPathParts]-1]]
-  if {$prefixPath ne $compPath} {
-    return -code error "selector: $selectorPath does not contain prefix: $prefixPath"
+proc gophser::stripSelectorPrefix {prefix selector} {
+  if {![regexp "^${prefix}(.*)$" $selector - subSelector]} {
+    return -code error "selector: $selector does not contain prefix: $prefix"
   }
-  set remainingPathParts [lrange $pathParts [llength $prefixPathParts] end]
-  if {[llength $remainingPathParts] == 0} {return ""}
-  return [file join {*}$remainingPathParts]
+  return $subSelector
 }
-
 
 
 # TODO: Work out at what point the sub path is safe
@@ -575,6 +603,9 @@ proc gophser::MakeDirEntries {type names descriptions} {
 # listDir ?switches? menu localDir selectorMountPath selectorSubPath
 # switches:
 #  -descriptions descriptions  Dictionary of descriptions for each filename
+#
+# arguments:
+#   selectorSubPath  must be a relative math
 #
 # Creates menu items for each file/dir in directory
 # Entries are sorted alphabetically with directories proceeding files
@@ -623,7 +654,7 @@ proc gophser::ListDir {args} {
       set prevFileDescribed false
     }
 
-    set selector [file join $selectorMountPath $selectorSubPath $localName]
+    set selector [MakeSelectorPath $selectorMountPath $selectorSubPath $localName]
     if {$type eq "f"} {
       set menu [menu item $menu text $userName $selector]
     } else {
@@ -641,6 +672,14 @@ proc gophser::ListDir {args} {
 }
 
 
+# Join path components to make a selector path beginning with "/" and with
+# each component joined with "/"
+# TODO: rename and test
+proc gophser::MakeSelectorPath {args} {
+  return "/[string trimleft [join [concat {*}$args] "/"] "/"]"
+}
+
+
 # Route handlers
 #
 # Copyright (C) 2024 Lawrence Woodman <https://lawrencewoodman.github.io/>
@@ -652,22 +691,30 @@ proc gophser::ListDir {args} {
 package require hetdb
 
 
-# selectorPath is the complete path requested.  This is assumed to have
-#              been made safe.
-# selectorMountPath is the path that localDir resides in the selector hierarchy
-proc gophser::ServePath {localDir selectorMountPath selectorPath} {
+# selector           is the selector requested and isn't assumed to be safe
+# selectorMountPath  is the path that localDir resides in the selector hierarchy
+# TODO: Test how this handles an empty selector, the same as "/"?
+# TODO: Test that selector must begin with "/" this will help avoid selector
+# TODO: confusion - document this reason
+proc gophser::ServePath {localDir selectorMountPath selector} {
   variable cache
-  set selectorSubPath [stripSelectorPrefix $selectorMountPath $selectorPath]
-  set path [file join $localDir $selectorSubPath]
+  # TODO: Create a proc to do this neatly
+  if {$selectorMountPath eq "/" && $selector eq ""} {
+    set subPath ""
+  } else {
+    set subPath [stripSelectorPrefix $selectorMountPath $selector]
+  }
+  set subPath [string trimleft [selectorToSafeFilePath $subPath] "/"]
+  set path [file join $localDir $subPath]
 
   if {![file exists $path]} {
-    log warning "local path doesn't exist: $path for selector: $selectorPath"
+    log warning "local path doesn't exist: $path for selector: $selector"
     return [list error "path not found"]
   }
 
   set pathPermissions [file attributes $path -permissions]
   if {($pathPermissions & 4) != 4} {
-    log warning "local path isn't world readable: $path for selector: $selectorPath"
+    log warning "local path isn't world readable: $path for selector: $selector"
     return [list error "path not found"]
   }
 
@@ -677,18 +724,18 @@ proc gophser::ServePath {localDir selectorMountPath selectorPath} {
     return [list text [ReadFile $path]]
   } elseif {[file isdirectory $path]} {
     # TODO: Should this be moved above?
-    set menuText [cache fetch cache $selectorPath]
+    set menuText [cache fetch cache $selector]
     if {$menuText eq {}} {
-      set selectorLocalPath [MakeSelectorLocalPath $localDir $selectorSubPath]
+      set selectorLocalPath [MakeSelectorLocalPath $localDir $subPath]
       set menu [menu create localhost 7070]
       # TODO: Rename gophermap
       if {[file exists [file join $selectorLocalPath gophermap]]} {
-        set menu [gophermap::process $menu $localDir $selectorPath $selectorMountPath $selectorSubPath]
+        set menu [gophermap::process $menu $localDir $selector $selectorMountPath $subPath]
       } else {
-        set menu [ListDir $menu $localDir $selectorMountPath $selectorSubPath]
+        set menu [ListDir $menu $localDir $selectorMountPath $subPath]
       }
       set menuText [menu render $menu]
-      cache store cache $selectorPath $menuText
+      cache store cache $selector $menuText
     }
     return [list text $menuText]
   }
@@ -705,16 +752,23 @@ proc gophser::ServePath {localDir selectorMountPath selectorPath} {
 # TODO: Add a description to link directory entries
 # TODO: Add an intro text for first page
 # TODO: Add layout in which to list links or intro text for the directory
+# TODO: Test how this handles an empty selector, the same as "/"?
 proc gophser::ServeLinkDirectory {directoryDB selectorMountPath selector} {
   # TODO: Support caching? - needs testing
   variable cache
   set menuText [cache fetch cache $selector]
   if {$menuText eq {}} {
-    set selectorSubPath [stripSelectorPrefix $selectorMountPath $selector]
-    set selectorTags [split $selectorSubPath "/"]
+    # TODO: Create a proc to do this neatly
+    if {$selectorMountPath eq "/" && $selector eq ""} {
+      set subPath ""
+    } else {
+      set subPath [stripSelectorPrefix $selectorMountPath $selector]
+    }
+    set path [selectorToSafeFilePath $subPath]
+    set selectorTags [split $path "/"]
     # TODO: Need to find a better way of handling default host and port here and below
     set menu [menu create localhost 7070]
-    if {$selectorSubPath eq ""} {
+    if {$subPath eq ""} {
       # TODO: Display an intro text - perhaps with some links
       # TODO: Sort into alphabetical order
       hetdb for $directoryDB tag {name title} {
@@ -754,7 +808,7 @@ proc gophser::ServeLinkDirectory {directoryDB selectorMountPath selector} {
 # that they can be served a html page which points to the URL.  This conforms
 # to:
 #   gopher://bitreich.org:70/1/scm/gopher-protocol/file/references/h_type.txt.gph
-proc gophser::ServeURL {selectorPath} {
+proc gophser::ServeURL {selector} {
   set htmlTemplate {
   <HTML>
     <HEAD>
@@ -774,7 +828,7 @@ proc gophser::ServeURL {selectorPath} {
     </BODY>
   </HTML>
   }
-  set url [regsub {^URL:[ ]*(.*)$} $selectorPath {\1}]
+  set url [regsub {^URL:[ ]*([^\s]*).*$} $selector {\1}]
   return [list text [string map [list @URL $url] $htmlTemplate]]
 }
 
@@ -934,7 +988,6 @@ proc gophser::router::route {pattern handlerName} {
 # Perhaps use namespace to determine whether input has been checked
 proc gophser::router::getHandler {selector} {
   variable routes
-  set selector [safeSelector $selector]
   foreach route $routes {
     # TODO: Rename handlerName?
     lassign $route pattern handlerName
@@ -943,39 +996,6 @@ proc gophser::router::getHandler {selector} {
     }
   }
   return {}
-}
-
-
-# Returns a safer version of the selector path
-# TODO: Only allow absolute paths
-# TODO: Convert tabs to % notation?
-# Convert spaces to % notation
-# Resolves .. without going past root of path
-# Removes . directory element
-# Supports directory elements beginning with ~
-# TODO: Should probably change this to safeFilePath and move it somewhere else
-proc gophser::router::safeSelector {selectorPath} {
-  # TODO: Work out how safe this selector really is
-  # TODO: and whether this should be done at this
-  # TODO: point or when actually handling file
-  # TODO: path
-  if {[string match {URL:*} $selectorPath]} {
-    return [string trim $selectorPath]
-  }
-  set selectorPath [string map {" " "%20"} $selectorPath]
-  set elements [file split $selectorPath]
-  set newSelectorPath [list]
-  foreach e $elements {
-    if {$e eq ".."} {
-      set newSelectorPath [lreplace $newSelectorPath end end]
-    } elseif {$e ne "." && $e ne "/"} {
-      if {[string match {./*} $e]} {
-        set e [string range $e 2 end]
-      }
-      lappend newSelectorPath $e
-    }
-  }
-  return "\/[join $newSelectorPath "/"]"
 }
 
 

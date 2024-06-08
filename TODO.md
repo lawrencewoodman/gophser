@@ -15,13 +15,14 @@
 * Make all sub namespaces Capitalized
 * Should log warning take a selector and store it in a structured way
 * Should gopher links be stripped of leading / ?
-* handle receiving a selector with or without initial slash and handle the same?                                                                
-  - maybe have this as an option   
+* handle receiving a selector with or without initial slash and handle the same?
+  - maybe have this as an option
 * Random thoughts from email
-  - Change router to work with mount points                                                                                                       
-  - Remove need for stripSelectorPrefix                                                                                                           
+  - Change router to work with mount points
+  - Remove need for stripSelectorPrefix
   - Pass mount point and sub selector to handler
 * Have a selector command which works like file but joins and splits elements of a selector always using / as path separator if wanted
+* Look at use of string trimleft to remove "/" - doesn't feel like the best way or the best place to do it
 
 
 ## Future Features

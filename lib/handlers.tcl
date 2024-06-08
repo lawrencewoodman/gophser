@@ -9,22 +9,30 @@
 package require hetdb
 
 
-# selectorPath is the complete path requested.  This is assumed to have
-#              been made safe.
-# selectorMountPath is the path that localDir resides in the selector hierarchy
-proc gophser::ServePath {localDir selectorMountPath selectorPath} {
+# selector           is the selector requested and isn't assumed to be safe
+# selectorMountPath  is the path that localDir resides in the selector hierarchy
+# TODO: Test how this handles an empty selector, the same as "/"?
+# TODO: Test that selector must begin with "/" this will help avoid selector
+# TODO: confusion - document this reason
+proc gophser::ServePath {localDir selectorMountPath selector} {
   variable cache
-  set selectorSubPath [stripSelectorPrefix $selectorMountPath $selectorPath]
-  set path [file join $localDir $selectorSubPath]
+  # TODO: Create a proc to do this neatly
+  if {$selectorMountPath eq "/" && $selector eq ""} {
+    set subPath ""
+  } else {
+    set subPath [stripSelectorPrefix $selectorMountPath $selector]
+  }
+  set subPath [string trimleft [selectorToSafeFilePath $subPath] "/"]
+  set path [file join $localDir $subPath]
 
   if {![file exists $path]} {
-    log warning "local path doesn't exist: $path for selector: $selectorPath"
+    log warning "local path doesn't exist: $path for selector: $selector"
     return [list error "path not found"]
   }
 
   set pathPermissions [file attributes $path -permissions]
   if {($pathPermissions & 4) != 4} {
-    log warning "local path isn't world readable: $path for selector: $selectorPath"
+    log warning "local path isn't world readable: $path for selector: $selector"
     return [list error "path not found"]
   }
 
@@ -34,18 +42,18 @@ proc gophser::ServePath {localDir selectorMountPath selectorPath} {
     return [list text [ReadFile $path]]
   } elseif {[file isdirectory $path]} {
     # TODO: Should this be moved above?
-    set menuText [cache fetch cache $selectorPath]
+    set menuText [cache fetch cache $selector]
     if {$menuText eq {}} {
-      set selectorLocalPath [MakeSelectorLocalPath $localDir $selectorSubPath]
+      set selectorLocalPath [MakeSelectorLocalPath $localDir $subPath]
       set menu [menu create localhost 7070]
       # TODO: Rename gophermap
       if {[file exists [file join $selectorLocalPath gophermap]]} {
-        set menu [gophermap::process $menu $localDir $selectorPath $selectorMountPath $selectorSubPath]
+        set menu [gophermap::process $menu $localDir $selector $selectorMountPath $subPath]
       } else {
-        set menu [ListDir $menu $localDir $selectorMountPath $selectorSubPath]
+        set menu [ListDir $menu $localDir $selectorMountPath $subPath]
       }
       set menuText [menu render $menu]
-      cache store cache $selectorPath $menuText
+      cache store cache $selector $menuText
     }
     return [list text $menuText]
   }
@@ -62,16 +70,23 @@ proc gophser::ServePath {localDir selectorMountPath selectorPath} {
 # TODO: Add a description to link directory entries
 # TODO: Add an intro text for first page
 # TODO: Add layout in which to list links or intro text for the directory
+# TODO: Test how this handles an empty selector, the same as "/"?
 proc gophser::ServeLinkDirectory {directoryDB selectorMountPath selector} {
   # TODO: Support caching? - needs testing
   variable cache
   set menuText [cache fetch cache $selector]
   if {$menuText eq {}} {
-    set selectorSubPath [stripSelectorPrefix $selectorMountPath $selector]
-    set selectorTags [split $selectorSubPath "/"]
+    # TODO: Create a proc to do this neatly
+    if {$selectorMountPath eq "/" && $selector eq ""} {
+      set subPath ""
+    } else {
+      set subPath [stripSelectorPrefix $selectorMountPath $selector]
+    }
+    set path [selectorToSafeFilePath $subPath]
+    set selectorTags [split $path "/"]
     # TODO: Need to find a better way of handling default host and port here and below
     set menu [menu create localhost 7070]
-    if {$selectorSubPath eq ""} {
+    if {$subPath eq ""} {
       # TODO: Display an intro text - perhaps with some links
       # TODO: Sort into alphabetical order
       hetdb for $directoryDB tag {name title} {
@@ -111,7 +126,7 @@ proc gophser::ServeLinkDirectory {directoryDB selectorMountPath selector} {
 # that they can be served a html page which points to the URL.  This conforms
 # to:
 #   gopher://bitreich.org:70/1/scm/gopher-protocol/file/references/h_type.txt.gph
-proc gophser::ServeURL {selectorPath} {
+proc gophser::ServeURL {selector} {
   set htmlTemplate {
   <HTML>
     <HEAD>
@@ -131,7 +146,7 @@ proc gophser::ServeURL {selectorPath} {
     </BODY>
   </HTML>
   }
-  set url [regsub {^URL:[ ]*(.*)$} $selectorPath {\1}]
+  set url [regsub {^URL:[ ]*([^\s]*).*$} $selector {\1}]
   return [list text [string map [list @URL $url] $htmlTemplate]]
 }
 

@@ -131,10 +131,9 @@ proc gophser::gophermap::Info {text} {
 proc gophser::gophermap::Dir {localDir selectorMountPath selectorSubPath} {
   variable menu
   variable descriptions
-
   set menu [::gophser::ListDir -descriptions $descriptions \
                                $menu $localDir \
-                               $selectorMountPath $selectorSubPath]
+                               $selectorMountPath [string trimleft $selectorSubPath "/"]]
 }
 
 
