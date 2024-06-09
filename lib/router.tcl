@@ -49,9 +49,11 @@ proc gophser::router::Sort {} {
 
 
 # Compare the routes for lsort to determine which is most specific
+# TODO: This compares assuming routes are based on paths whose components are
+# TODO: joined with "/" - revisit this and test properly.
 proc gophser::router::CompareRoutes {a b} {
-  set patternPartsA [file split [lindex $a 0]]
-  set patternPartsB [file split [lindex $b 0]]
+  set patternPartsA [split [lindex $a 0] "/"]
+  set patternPartsB [split [lindex $b 0] "/"]
   foreach partA $patternPartsA partB $patternPartsB {
     if {$partA ne $partB} {
       if {$partA eq "*"} { return 1 }
