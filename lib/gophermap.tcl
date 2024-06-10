@@ -43,7 +43,9 @@ proc gophser::gophermap::process {_menu localDir selector selectorMountPath sele
   $interp alias url ::gophser::gophermap::Url
 
   set gophermapPath [file join $selectorLocalDir gophermap]
-  if {[catch {$interp invokehidden source $gophermapPath} err]} {
+  try {
+    $interp invokehidden source $gophermapPath
+  } on error err {
     return -code error "error processing: $gophermapPath, for selector: $selector, $err"
   }
 

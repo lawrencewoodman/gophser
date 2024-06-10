@@ -71,11 +71,20 @@ proc gophser::ClientConnect {sock host port} {
 
 
 proc gophser::ReadSelector {sock} {
-  if {[catch {SafeGets $sock 255 selector} len] || [eof $sock]} {
-      # TOOD: log error?
+  try {
+    set len [SafeGets $sock 255 selector]
+    if {[eof $sock]} {
+      # TODO: find a neater way of handling this
+      # TODO: log error?
       catch {close $sock}
-  } elseif {$len >= 0} {
-    HandleRequest $sock $selector
+      return
+    }
+    if {$len >= 0} {
+      HandleRequest $sock $selector
+    }
+  } on error err {
+    # TODO: log error?
+    catch {close $sock}
   }
 }
 
@@ -90,11 +99,13 @@ proc gophser::HandleRequest {sock selector} {
     return
   }
   # TODO: Better safer way of doing this?
-  if {[catch {{*}$handler $selector} response]} {
-    log error "error running handler for selector: $selector - $::errorInfo"
-    return
+  try {
+    set response [{*}$handler $selector]
+    AddResponse $sock $response
+  } on error err {
+    log error "error running handler for selector: $selector - $err"
+    # TODO: close the sock?
   }
-  AddResponse $sock $response
 }
 
 
@@ -160,9 +171,11 @@ proc gophser::SendResponseWhenWritable {sock} {
     error {
       # TODO: Add CRLF on end?
       set value "3$value\tFAKE\t(NULL)\t0"
-      if {[catch {puts -nonewline $sock $value} error]} {
+      try {
+        puts -nonewline $sock $value
+      } on error err {
         # TODO: handle error differently
-        puts stderr "Error writing to socket: $error"
+        puts stderr "Error writing to socket: $err"
       }
       dict unset responses $sock
       catch {close $sock}
@@ -172,10 +185,12 @@ proc gophser::SendResponseWhenWritable {sock} {
       set str [string range $value 0 10000]
       set value [string range $value 10001 end]
 
-      if {[catch {puts -nonewline $sock $str} error]} {
+      try {
+        puts -nonewline $sock $str
+      } on error err {
         dict unset responses $sock
         # TODO: handle error differently
-        puts stderr "Error writing to socket: $error"
+        puts stderr "Error writing to socket: $err"
         catch {close $sock}
         return
       }
