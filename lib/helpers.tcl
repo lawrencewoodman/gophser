@@ -61,13 +61,13 @@ proc gophser::provideLinkDir {directoryDB selectorMountPath} {
 
   # TODO: relook at whether safeSelector use is appropriate here
   if {$selectorMountPath eq "/"} {
-    set selectorMountPathGlob "/*"
+    set selectorMountPathGlob "*"
   } else {
     set selectorMountPathGlob "$selectorMountPath/*"
   }
   # TODO: Find a better way of doing this
-  route $selectorMountPathGlob [list gophser::ServeLinkDirectory $directoryDB $selectorMountPath]
   route $selectorMountPath [list gophser::ServeLinkDirectory $directoryDB $selectorMountPath]
+  route $selectorMountPathGlob [list gophser::ServeLinkDirectory $directoryDB $selectorMountPath]
 }
 
 

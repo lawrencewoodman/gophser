@@ -50,7 +50,7 @@ proc outputStats {selectors timings} {
 set configScript {
   proc sendWord {selector} {
     set word [gophser::stripSelectorPrefix "/say" $selector]
-    return [list text [string map {"%20" " "} $word]]
+    return [dict create type text value [string map {"%20" " "} $word]]
   }
 
   proc makeBigStr {} {
@@ -62,7 +62,7 @@ set configScript {
   }
 
   proc sendBigFile {bigStr selector} {
-    return [list text $bigStr]
+    return [dict create type text value $bigStr]
   }
 
   set bigStr [makeBigStr]

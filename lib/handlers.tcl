@@ -27,19 +27,19 @@ proc gophser::ServePath {localDir selectorMountPath selector} {
 
   if {![file exists $path]} {
     log warning "local path doesn't exist: $path for selector: $selector"
-    return [list error "path not found"]
+    return [dict create type error value "path not found"]
   }
 
   set pathPermissions [file attributes $path -permissions]
   if {($pathPermissions & 4) != 4} {
     log warning "local path isn't world readable: $path for selector: $selector"
-    return [list error "path not found"]
+    return [dict create type error value "path not found"]
   }
 
   if {[file isfile $path]} {
     # TODO: Don't allow gophermap to be downloaded
     # TODO: Support caching when file isn't too big?
-    return [list text [ReadFile $path]]
+    return [dict create type text value [ReadFile $path]]
   } elseif {[file isdirectory $path]} {
     # TODO: Should this be moved above?
     set menuText [cache fetch cache $selector]
@@ -55,7 +55,7 @@ proc gophser::ServePath {localDir selectorMountPath selector} {
       set menuText [menu render $menu]
       cache store cache $selector $menuText
     }
-    return [list text $menuText]
+    return [dict create type text value $menuText]
   }
   error "TODO: what is this?"
 }
@@ -82,8 +82,8 @@ proc gophser::ServeLinkDirectory {directoryDB selectorMountPath selector} {
     } else {
       set subPath [stripSelectorPrefix $selectorMountPath $selector]
     }
-    set path [selectorToSafeFilePath $subPath]
-    set selectorTags [split $path "/"]
+    set subPath [string trimleft [selectorToSafeFilePath $subPath] "/"]
+    set selectorTags [split $subPath "/"]
     # TODO: Need to find a better way of handling default host and port here and below
     set menu [menu create localhost 7070]
     if {$subPath eq ""} {
@@ -110,14 +110,14 @@ proc gophser::ServeLinkDirectory {directoryDB selectorMountPath selector} {
         if {$tagsMatch} {
           set menu [menu url $menu $link_title $link_url]
         } else {
-          return [list error "path not found"]
+          return [dict create type error value "path not found"]
         }
       }
     }
     set menuText [menu render $menu]
     cache store cache $selector $menuText
   }
-  return [list text $menuText]
+  return [dict create type text value $menuText]
 }
 
 
@@ -147,6 +147,6 @@ proc gophser::ServeURL {selector} {
   </HTML>
   }
   set url [regsub {^URL:[ ]*([^\s]*).*$} $selector {\1}]
-  return [list text [string map [list @URL $url] $htmlTemplate]]
+  return [dict create type text value [string map [list @URL $url] $htmlTemplate]]
 }
 

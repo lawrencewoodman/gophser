@@ -62,35 +62,45 @@ proc gophser::log {command args} {
 
 proc gophser::ClientConnect {sock host port} {
   variable configOptions
-  variable sendStatus
   chan configure $sock -buffering line -blocking 0 -translation {auto binary}
-  dict set sendStatus $sock "waiting"
   chan event $sock readable [list ::gophser::ReadSelector $sock]
-  chan event $sock writable [list ::gophser::SendTextWhenWritable $sock]
+  chan event $sock writable [list ::gophser::SendResponseWhenWritable $sock]
 
   log info "connection from $host:$port"
 }
 
 
-# TODO: Handle client sending too much data
 proc gophser::ReadSelector {sock} {
-  variable sendStatus
   if {[catch {SafeGets $sock 255 selector} len] || [eof $sock]} {
+      # TOOD: log error?
       catch {close $sock}
   } elseif {$len >= 0} {
-    set isErr [catch {
-      if {![HandleSelector $sock $selector]} {
-        log warning "selector not found: $selector"
-        SendError $sock "path not found"
-      }
-      dict set sendStatus $sock "done"
-      # TODO: set routine to tidy up sendDones, etc that have been around for
-      # TODO: a while
-    } err]
-    if {$isErr} {
-      log error $err
-    }
+    HandleRequest $sock $selector
   }
+}
+
+
+
+proc gophser::HandleRequest {sock selector} {
+  set handler [router::getHandler $selector]
+  if {$handler eq {}} {
+    # TODO: should we just have a selector not found handler?
+    log warning "selector not found: $selector"
+    SendError $sock "path not found"
+    return
+  }
+  # TODO: Better safer way of doing this?
+  if {[catch {{*}$handler $selector} response]} {
+    log error "error running handler for selector: $selector - $::errorInfo"
+    return
+  }
+  AddResponse $sock $response
+}
+
+
+proc gophser::AddResponse {sock response} {
+  variable responses
+  dict set responses $sock $response
 }
 
 
@@ -119,31 +129,6 @@ proc gophser::SafeGets {channelId maxSize varname} {
 }
 
 
-# TODO: report better errors in case handler returns an error
-proc gophser::HandleSelector {sock selector} {
-  set handler [router::getHandler $selector]
-  if {$handler ne {}} {
-    # TODO: Better safer way of doing this?
-    if {[catch {lassign [{*}$handler $selector] type value}]} {
-      error "error running handler for selector: $selector - $::errorInfo"
-    }
-    switch -- $type {
-      text {
-        SendText $sock $value
-      }
-      error {
-        SendError $sock $value
-      }
-      default {
-        error "unknown type: $type"
-      }
-    }
-    return true
-  }
-  return false
-}
-
-
 # TODO: Be careful file isn't too big and reduce transmission rate if big and under heavy load
 # TODO: Catch errors
 proc gophser::ReadFile {filename} {
@@ -157,52 +142,63 @@ proc gophser::ReadFile {filename} {
 }
 
 
-# To be called by writable event to send text when sock is writable
-# This will break the text into 10k chunks to help if we have multiple
-# slow connections.
-proc gophser::SendTextWhenWritable {sock} {
-  variable sendMsgs
-  variable sendStatus
-  if {[dict get $sendStatus $sock] eq "waiting"} {
+# To be called by writable event to send a response if present when sock is
+# writable.
+# This will break the response values into 10k chunks to help if we have
+# multiple slow connections.
+proc gophser::SendResponseWhenWritable {sock} {
+  variable responses
+  if {![dict exists $responses $sock]} {
     return
   }
+  set response [dict get $responses $sock]
+  # TODO: better name than value?
+  set type [dict get $response type]
+  set value [dict get $response value]
 
-  set msg [dict get $sendMsgs $sock]
-  if {[string length $msg] == 0} {
-    if {[dict get $sendStatus $sock] eq "done"} {
-      dict unset sendMsgs $sock
-      dict unset sendStatus $sock
+  switch $type {
+    error {
+      # TODO: Add CRLF on end?
+      set value "3$value\tFAKE\t(NULL)\t0"
+      if {[catch {puts -nonewline $sock $value} error]} {
+        # TODO: handle error differently
+        puts stderr "Error writing to socket: $error"
+      }
+      dict unset responses $sock
       catch {close $sock}
       return
-    } else {
-      dict set sendStatus $sock "waiting"
+    }
+    text {
+      set str [string range $value 0 10000]
+      set value [string range $value 10001 end]
+
+      if {[catch {puts -nonewline $sock $str} error]} {
+        dict unset responses $sock
+        # TODO: handle error differently
+        puts stderr "Error writing to socket: $error"
+        catch {close $sock}
+        return
+      }
+
+      # TODO: Benchmark if string length is quicker
+      if {$value eq {}} {
+        dict unset responses $sock
+        # TODO: catch error and log if present
+        catch {close $sock}
+        return
+      }
+      dict set responses $sock value $value
+    }
+    default {
+      error "unknown type: $type"
     }
   }
-
-  set str [string range $msg 0 10000]
-  dict set sendMsgs $sock [string range $msg 10001 end]
-
-  if {[catch {puts -nonewline $sock $str} error]} {
-    # TODO: handle error differently
-    puts stderr "Error writing to socket: $error"
-    catch {close $sock}
-  }
-}
-
-
-# TODO: Have another one for sendBinary?
-proc gophser::SendText {sock msg} {
-  variable sendMsgs
-  variable sendStatus
-  # TODO: Make sendMsgs a list so can send multiple messages?
-  dict set sendMsgs $sock $msg
-  dict set sendStatus $sock ready
 }
 
 
 # TODO: Turn any tabs in message to % notation
 proc gophser::SendError {sock msg} {
-  SendText $sock "3$msg\tFAKE\t(NULL)\t0"
-  dict set sendStatus $sock "done"
+  set response [dict create type error value $msg]
+  AddResponse $sock $response
 }
 

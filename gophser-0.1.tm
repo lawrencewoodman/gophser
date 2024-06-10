@@ -18,13 +18,7 @@ namespace eval gophser {
   variable cache
   # TODO: Rename listen
   variable listen
-  variable sendMsgs [dict create]
-  # TODO: improve statuses
-  # Status of a send:
-  #  waiting: waiting for something to send
-  #  ready:   something is ready to send
-  #  done:    nothing left to send, close
-  variable sendStatus [dict create]
+  variable responses [dict create]
   variable configOptions [dict create logger [dict create suppress none]]
 }
 
@@ -316,35 +310,45 @@ proc gophser::log {command args} {
 
 proc gophser::ClientConnect {sock host port} {
   variable configOptions
-  variable sendStatus
   chan configure $sock -buffering line -blocking 0 -translation {auto binary}
-  dict set sendStatus $sock "waiting"
   chan event $sock readable [list ::gophser::ReadSelector $sock]
-  chan event $sock writable [list ::gophser::SendTextWhenWritable $sock]
+  chan event $sock writable [list ::gophser::SendResponseWhenWritable $sock]
 
   log info "connection from $host:$port"
 }
 
 
-# TODO: Handle client sending too much data
 proc gophser::ReadSelector {sock} {
-  variable sendStatus
   if {[catch {SafeGets $sock 255 selector} len] || [eof $sock]} {
+      # TOOD: log error?
       catch {close $sock}
   } elseif {$len >= 0} {
-    set isErr [catch {
-      if {![HandleSelector $sock $selector]} {
-        log warning "selector not found: $selector"
-        SendError $sock "path not found"
-      }
-      dict set sendStatus $sock "done"
-      # TODO: set routine to tidy up sendDones, etc that have been around for
-      # TODO: a while
-    } err]
-    if {$isErr} {
-      log error $err
-    }
+    HandleRequest $sock $selector
   }
+}
+
+
+
+proc gophser::HandleRequest {sock selector} {
+  set handler [router::getHandler $selector]
+  if {$handler eq {}} {
+    # TODO: should we just have a selector not found handler?
+    log warning "selector not found: $selector"
+    SendError $sock "path not found"
+    return
+  }
+  # TODO: Better safer way of doing this?
+  if {[catch {{*}$handler $selector} response]} {
+    log error "error running handler for selector: $selector - $::errorInfo"
+    return
+  }
+  AddResponse $sock $response
+}
+
+
+proc gophser::AddResponse {sock response} {
+  variable responses
+  dict set responses $sock $response
 }
 
 
@@ -373,31 +377,6 @@ proc gophser::SafeGets {channelId maxSize varname} {
 }
 
 
-# TODO: report better errors in case handler returns an error
-proc gophser::HandleSelector {sock selector} {
-  set handler [router::getHandler $selector]
-  if {$handler ne {}} {
-    # TODO: Better safer way of doing this?
-    if {[catch {lassign [{*}$handler $selector] type value}]} {
-      error "error running handler for selector: $selector - $::errorInfo"
-    }
-    switch -- $type {
-      text {
-        SendText $sock $value
-      }
-      error {
-        SendError $sock $value
-      }
-      default {
-        error "unknown type: $type"
-      }
-    }
-    return true
-  }
-  return false
-}
-
-
 # TODO: Be careful file isn't too big and reduce transmission rate if big and under heavy load
 # TODO: Catch errors
 proc gophser::ReadFile {filename} {
@@ -411,53 +390,64 @@ proc gophser::ReadFile {filename} {
 }
 
 
-# To be called by writable event to send text when sock is writable
-# This will break the text into 10k chunks to help if we have multiple
-# slow connections.
-proc gophser::SendTextWhenWritable {sock} {
-  variable sendMsgs
-  variable sendStatus
-  if {[dict get $sendStatus $sock] eq "waiting"} {
+# To be called by writable event to send a response if present when sock is
+# writable.
+# This will break the response values into 10k chunks to help if we have
+# multiple slow connections.
+proc gophser::SendResponseWhenWritable {sock} {
+  variable responses
+  if {![dict exists $responses $sock]} {
     return
   }
+  set response [dict get $responses $sock]
+  # TODO: better name than value?
+  set type [dict get $response type]
+  set value [dict get $response value]
 
-  set msg [dict get $sendMsgs $sock]
-  if {[string length $msg] == 0} {
-    if {[dict get $sendStatus $sock] eq "done"} {
-      dict unset sendMsgs $sock
-      dict unset sendStatus $sock
+  switch $type {
+    error {
+      # TODO: Add CRLF on end?
+      set value "3$value\tFAKE\t(NULL)\t0"
+      if {[catch {puts -nonewline $sock $value} error]} {
+        # TODO: handle error differently
+        puts stderr "Error writing to socket: $error"
+      }
+      dict unset responses $sock
       catch {close $sock}
       return
-    } else {
-      dict set sendStatus $sock "waiting"
+    }
+    text {
+      set str [string range $value 0 10000]
+      set value [string range $value 10001 end]
+
+      if {[catch {puts -nonewline $sock $str} error]} {
+        dict unset responses $sock
+        # TODO: handle error differently
+        puts stderr "Error writing to socket: $error"
+        catch {close $sock}
+        return
+      }
+
+      # TODO: Benchmark if string length is quicker
+      if {$value eq {}} {
+        dict unset responses $sock
+        # TODO: catch error and log if present
+        catch {close $sock}
+        return
+      }
+      dict set responses $sock value $value
+    }
+    default {
+      error "unknown type: $type"
     }
   }
-
-  set str [string range $msg 0 10000]
-  dict set sendMsgs $sock [string range $msg 10001 end]
-
-  if {[catch {puts -nonewline $sock $str} error]} {
-    # TODO: handle error differently
-    puts stderr "Error writing to socket: $error"
-    catch {close $sock}
-  }
-}
-
-
-# TODO: Have another one for sendBinary?
-proc gophser::SendText {sock msg} {
-  variable sendMsgs
-  variable sendStatus
-  # TODO: Make sendMsgs a list so can send multiple messages?
-  dict set sendMsgs $sock $msg
-  dict set sendStatus $sock ready
 }
 
 
 # TODO: Turn any tabs in message to % notation
 proc gophser::SendError {sock msg} {
-  SendText $sock "3$msg\tFAKE\t(NULL)\t0"
-  dict set sendStatus $sock "done"
+  set response [dict create type error value $msg]
+  AddResponse $sock $response
 }
 
 
@@ -490,19 +480,19 @@ proc gophser::ServePath {localDir selectorMountPath selector} {
 
   if {![file exists $path]} {
     log warning "local path doesn't exist: $path for selector: $selector"
-    return [list error "path not found"]
+    return [dict create type error value "path not found"]
   }
 
   set pathPermissions [file attributes $path -permissions]
   if {($pathPermissions & 4) != 4} {
     log warning "local path isn't world readable: $path for selector: $selector"
-    return [list error "path not found"]
+    return [dict create type error value "path not found"]
   }
 
   if {[file isfile $path]} {
     # TODO: Don't allow gophermap to be downloaded
     # TODO: Support caching when file isn't too big?
-    return [list text [ReadFile $path]]
+    return [dict create type text value [ReadFile $path]]
   } elseif {[file isdirectory $path]} {
     # TODO: Should this be moved above?
     set menuText [cache fetch cache $selector]
@@ -518,7 +508,7 @@ proc gophser::ServePath {localDir selectorMountPath selector} {
       set menuText [menu render $menu]
       cache store cache $selector $menuText
     }
-    return [list text $menuText]
+    return [dict create type text value $menuText]
   }
   error "TODO: what is this?"
 }
@@ -545,8 +535,8 @@ proc gophser::ServeLinkDirectory {directoryDB selectorMountPath selector} {
     } else {
       set subPath [stripSelectorPrefix $selectorMountPath $selector]
     }
-    set path [selectorToSafeFilePath $subPath]
-    set selectorTags [split $path "/"]
+    set subPath [string trimleft [selectorToSafeFilePath $subPath] "/"]
+    set selectorTags [split $subPath "/"]
     # TODO: Need to find a better way of handling default host and port here and below
     set menu [menu create localhost 7070]
     if {$subPath eq ""} {
@@ -573,14 +563,14 @@ proc gophser::ServeLinkDirectory {directoryDB selectorMountPath selector} {
         if {$tagsMatch} {
           set menu [menu url $menu $link_title $link_url]
         } else {
-          return [list error "path not found"]
+          return [dict create type error value "path not found"]
         }
       }
     }
     set menuText [menu render $menu]
     cache store cache $selector $menuText
   }
-  return [list text $menuText]
+  return [dict create type text value $menuText]
 }
 
 
@@ -610,7 +600,7 @@ proc gophser::ServeURL {selector} {
   </HTML>
   }
   set url [regsub {^URL:[ ]*([^\s]*).*$} $selector {\1}]
-  return [list text [string map [list @URL $url] $htmlTemplate]]
+  return [dict create type text value [string map [list @URL $url] $htmlTemplate]]
 }
 
 
@@ -621,7 +611,7 @@ proc gophser::ServeURL {selector} {
 # Licensed under an MIT licence.  Please see LICENCE.md for details.
 #
 # TODO: Put these somewhere else, only here to help cleanup and organize
-# TODO: the code
+# TODO: the code - also have tests for this file in helpers.test
 
 # mount localDir selectorMountPath
 #
@@ -677,13 +667,13 @@ proc gophser::provideLinkDir {directoryDB selectorMountPath} {
 
   # TODO: relook at whether safeSelector use is appropriate here
   if {$selectorMountPath eq "/"} {
-    set selectorMountPathGlob "/*"
+    set selectorMountPathGlob "*"
   } else {
     set selectorMountPathGlob "$selectorMountPath/*"
   }
   # TODO: Find a better way of doing this
-  route $selectorMountPathGlob [list gophser::ServeLinkDirectory $directoryDB $selectorMountPath]
   route $selectorMountPath [list gophser::ServeLinkDirectory $directoryDB $selectorMountPath]
+  route $selectorMountPathGlob [list gophser::ServeLinkDirectory $directoryDB $selectorMountPath]
 }
 
 
