@@ -1,0 +1,81 @@
+package require tcltest
+namespace import tcltest::*
+
+apply {{} {
+  set thisScriptDir [file dirname [info script]]
+  set moduleDir [file normalize [file join $thisScriptDir ..]]
+  set modules [lsort -decreasing [glob -directory $moduleDir gophser-*.tm]]
+  source [lindex $modules 0]
+  source [file join $thisScriptDir test_helpers.tcl]
+  TestHelpers::setRepoRootDir $moduleDir
+}}
+
+# TODO: Rename this file and helpers.tcl?
+
+
+test mount-1 {Returns error if localDir is a relative path} \
+-body {
+  gophser::mount "fred/bob" "/"
+} -returnCodes {error} -result {can not mount relative directories: fred/bob}
+
+
+test mount-2 {Returns error if localDir is empty} \
+-body {
+  gophser::mount "" "/"
+} -returnCodes {error} -result {local dir blank}
+
+
+test mount-3 {Returns error if wildcards in selector} \
+-setup {
+  set selectors {
+    "/bob/*"
+    "/bob/*/fred/"
+    "/bob/?"
+    "/bob\[a-Z\]/"
+  }
+} -body {
+  lmap selector $selectors {
+    catch {gophser::mount "/" $selector} res options
+    list [dict get $options -code] $res
+  }
+} -result [list [list 1 "selector can not contain wildcards"] \
+                [list 1 "selector can not contain wildcards"] \
+                [list 1 "selector can not contain wildcards"] \
+                [list 1 "selector can not contain wildcards"]]
+
+
+test mount-4 {Returns error if localDir doesn't exist} \
+-body {
+  gophser::mount [file join [TestHelpers::getRepoRootDir] unknown] "/"
+} -returnCodes {error} -result "local directory doesn't exist: [file join [TestHelpers::getRepoRootDir] unknown]"
+
+
+test mount-5 {Returns error if localDir isn't a directory} \
+-body {
+  gophser::mount [file join [TestHelpers::getRepoRootDir] lib gophser.tcl] "/"
+} -returnCodes {error} -result "local directory isn't a directory: [file join [TestHelpers::getRepoRootDir] lib gophser.tcl]"
+
+
+
+test selectorToSafeFilePath-1 {} \
+-setup {
+  set selectors {
+    /tests
+    /fred/bob/dave
+    /fred/bob/..
+    /fred/bob/../..
+    /./gerald/.
+    /~fred
+    /.fred
+    {}
+    /
+  }
+} -body {
+  lmap selector $selectors {
+    gophser::selectorToSafeFilePath $selector
+  }
+} -result [list /tests /fred/bob/dave /fred / /gerald /~fred \
+                /.fred / /]
+
+
+cleanupTests

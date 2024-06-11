@@ -33,6 +33,7 @@ test init-1 {Check can read menu from server when no gophermap} \
   "0cache.test\t/tests/cache.test\tlocalhost\t7070\r\n" \
   "0gophermap.test\x09/tests/gophermap.test\x09localhost\x097070\r\n" \
   "0gophser.test\t/tests/gophser.test\tlocalhost\t7070\r\n" \
+  "0helpers.test\t/tests/helpers.test\tlocalhost\t7070\r\n" \
   "0menu.test\t/tests/menu.test\tlocalhost\t7070\r\n" \
   "0router.test\t/tests/router.test\tlocalhost\t7070\r\n" \
   "0test_helpers.tcl\t/tests/test_helpers.tcl\tlocalhost\t7070\r\n" \
@@ -86,6 +87,7 @@ test init-3 {Check can mount somewhere other than root} \
   "0cache.test\t/bob/tests/cache.test\tlocalhost\t7070\r\n" \
   "0gophermap.test\x09/bob/tests/gophermap.test\x09localhost\x097070\r\n" \
   "0gophser.test\t/bob/tests/gophser.test\tlocalhost\t7070\r\n" \
+  "0helpers.test\t/bob/tests/helpers.test\tlocalhost\t7070\r\n" \
   "0menu.test\t/bob/tests/menu.test\tlocalhost\t7070\r\n" \
   "0router.test\t/bob/tests/router.test\tlocalhost\t7070\r\n" \
   "0test_helpers.tcl\t/bob/tests/test_helpers.tcl\tlocalhost\t7070\r\n" \
@@ -209,70 +211,6 @@ test init-8 {Check returns an error if URL: selector isn't formed properly for e
 } -cleanup {
   TestHelpers::shutdownServer $serverThread]
 } -result "3malformed URL: selector\tFAKE\t(NULL)\t0"
-
-
-test mount-1 {Returns error if localDir is a relative path} \
--body {
-  gophser::mount "fred/bob" "/"
-} -returnCodes {error} -result {can not mount relative directories: fred/bob}
-
-
-test mount-2 {Returns error if localDir is empty} \
--body {
-  gophser::mount "" "/"
-} -returnCodes {error} -result {local dir blank}
-
-
-test mount-3 {Returns error if wildcards in selector} \
--setup {
-  set selectors {
-    "/bob/*"
-    "/bob/*/fred/"
-    "/bob/?"
-    "/bob\[a-Z\]/"
-  }
-} -body {
-  lmap selector $selectors {
-    catch {gophser::mount "/" $selector} res options
-    list [dict get $options -code] $res
-  }
-} -result [list [list 1 "selector can not contain wildcards"] \
-                [list 1 "selector can not contain wildcards"] \
-                [list 1 "selector can not contain wildcards"] \
-                [list 1 "selector can not contain wildcards"]]
-
-
-test mount-4 {Returns error if localDir doesn't exist} \
--body {
-  gophser::mount [file join [TestHelpers::getRepoRootDir] unknown] "/"
-} -returnCodes {error} -result "local directory doesn't exist: [file join [TestHelpers::getRepoRootDir] unknown]"
-
-
-test mount-5 {Returns error if localDir isn't a directory} \
--body {
-  gophser::mount [file join [TestHelpers::getRepoRootDir] lib gophser.tcl] "/"
-} -returnCodes {error} -result "local directory isn't a directory: [file join [TestHelpers::getRepoRootDir] lib gophser.tcl]"
-
-
-test selectorToSafeFilePath-1 {} \
--setup {
-  set selectors {
-    /tests
-    /fred/bob/dave
-    /fred/bob/..
-    /fred/bob/../..
-    /./gerald/.
-    /~fred
-    /.fred
-    {}
-    /
-  }
-} -body {
-  lmap selector $selectors {
-    gophser::selectorToSafeFilePath $selector
-  }
-} -result [list /tests /fred/bob/dave /fred / /gerald /~fred \
-                /.fred / /]
 
 
 cleanupTests
