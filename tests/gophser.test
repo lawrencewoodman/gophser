@@ -173,14 +173,10 @@ test init-7 {Check can handle URL: selector prefix} \
   }
   set serverThread [TestHelpers::startServer $configScript]
 } -body {
-  # Ensures spaces are stripped from url
-  # TODO: Check if spaces should be stripped
-  set getA [TestHelpers::gopherGet localhost 7070 "URL:https://example.com/blog"]
-  set getB [TestHelpers::gopherGet localhost 7070 "URL: https://example.com/blog "]
-  list $getA $getB [expr {$getA eq $getB}]
+  TestHelpers::gopherGet localhost 7070 "URL:https://example.com/blog"
 } -cleanup {
   TestHelpers::shutdownServer $serverThread]
-} -result [list {
+} -result {
   <HTML>
     <HEAD>
       <META HTTP-EQUIV="refresh" content="2;URL=https://example.com/blog">
@@ -198,25 +194,21 @@ test init-7 {Check can handle URL: selector prefix} \
       Thanks for using gopher!
     </BODY>
   </HTML>
-  } {
-  <HTML>
-    <HEAD>
-      <META HTTP-EQUIV="refresh" content="2;URL=https://example.com/blog">
-    </HEAD>
-    <BODY>
-      You are following a link from gopher to a web site.  You will be
-      automatically taken to the web site shortly.  If you do not get sent
-      there, please click
-      <A HREF="https://example.com/blog">here</A> to go to the web site.
-      <P>
-      The URL linked is:
-      <P>
-      <A HREF="https://example.com/blog">https://example.com/blog</A>
-      <P>
-      Thanks for using gopher!
-    </BODY>
-  </HTML>
-  } 1]
+  }
+
+
+test init-8 {Check returns an error if URL: selector isn't formed properly for example has spaces in it} \
+-setup {
+  set configScript {
+    gophser::log suppress all
+    gophser::mount [file join [file normalize $repoRootDir] tests fixtures] "/"
+  }
+  set serverThread [TestHelpers::startServer $configScript]
+} -body {
+  TestHelpers::gopherGet localhost 7070 "URL: https://example.com/blog "
+} -cleanup {
+  TestHelpers::shutdownServer $serverThread]
+} -result "3malformed URL: selector\tFAKE\t(NULL)\t0"
 
 
 test mount-1 {Returns error if localDir is a relative path} \

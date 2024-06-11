@@ -11,6 +11,7 @@ proc gophser::init {port} {
   variable cache
   set listen [socket -server ::gophser::ClientConnect $port]
   set cache [cache create]
+
   # Add route to handle URL: selectors
   route "URL:*" {} {{request} {
     gophser::ServeURL $request

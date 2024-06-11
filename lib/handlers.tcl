@@ -146,7 +146,11 @@ proc gophser::ServeURL {request} {
     </BODY>
   </HTML>
   }
-  set url [regsub {^URL:[ ]*([^\s]*).*$} $selector {\1}]
+
+  if {![regexp {^URL:([^\s]*)$} $selector - url]} {
+    log warning "malformed URL: selector: $selector"
+    return [dict create type error value "malformed URL: selector"]
+  }
   return [dict create type text value [string map [list @URL $url] $htmlTemplate]]
 }
 

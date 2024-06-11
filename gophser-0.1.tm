@@ -261,6 +261,7 @@ proc gophser::init {port} {
   variable cache
   set listen [socket -server ::gophser::ClientConnect $port]
   set cache [cache create]
+
   # Add route to handle URL: selectors
   route "URL:*" {} {{request} {
     gophser::ServeURL $request
@@ -623,7 +624,11 @@ proc gophser::ServeURL {request} {
     </BODY>
   </HTML>
   }
-  set url [regsub {^URL:[ ]*([^\s]*).*$} $selector {\1}]
+
+  if {![regexp {^URL:([^\s]*)$} $selector - url]} {
+    log warning "malformed URL: selector: $selector"
+    return [dict create type error value "malformed URL: selector"]
+  }
   return [dict create type text value [string map [list @URL $url] $htmlTemplate]]
 }
 
