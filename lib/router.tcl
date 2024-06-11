@@ -18,23 +18,22 @@ namespace eval gophser::router {
 
 # TODO: Restrict pattern and make safe
 # TODO: Sort routes after adding from most specific to most general
-proc gophser::router::route {pattern handlerName} {
+# funcArgs A list of arguments to use after the request when applying the func
+# func     A function suitable for the apply command
+proc gophser::router::route {pattern funcArgs func} {
   variable routes
-  lappend routes [list $pattern $handlerName]
+  lappend routes [list $pattern $funcArgs $func]
   Sort
 }
 
 
 # TODO: rename
-# TODO: Assumes selector is safe at this point?
-# Perhaps use namespace to determine whether input has been checked
 proc gophser::router::getHandler {selector} {
   variable routes
   foreach route $routes {
-    # TODO: Rename handlerName?
-    lassign $route pattern handlerName
+    lassign $route pattern funcArgs func
     if {[string match $pattern $selector]} {
-      return $handlerName
+      return [list $funcArgs $func]
     }
   }
   return {}

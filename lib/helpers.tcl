@@ -47,8 +47,13 @@ proc gophser::mount {localDir selectorMountPath} {
   }
 
   # Match with and without trailing slash
-  route $selectorMountPath [list gophser::ServePath $localDir $selectorMountPath]
-  route $selectorMountPathGlob [list gophser::ServePath $localDir $selectorMountPath]
+  set routeArgs [list $localDir $selectorMountPath]
+  route $selectorMountPath $routeArgs {{request localDir selectorMountPath} {
+    gophser::ServePath $request $localDir $selectorMountPath
+  }}
+  route $selectorMountPathGlob $routeArgs {{request localDir selectorMountPath} {
+    gophser::ServePath $request $localDir $selectorMountPath
+  }}
 }
 
 
@@ -66,8 +71,13 @@ proc gophser::provideLinkDir {directoryDB selectorMountPath} {
     set selectorMountPathGlob "$selectorMountPath/*"
   }
   # TODO: Find a better way of doing this
-  route $selectorMountPath [list gophser::ServeLinkDirectory $directoryDB $selectorMountPath]
-  route $selectorMountPathGlob [list gophser::ServeLinkDirectory $directoryDB $selectorMountPath]
+  set routeArgs [list $directoryDB $selectorMountPath]
+  route $selectorMountPath $routeArgs {{request directoryDB selectorMountPath} {
+    gophser::ServeLinkDirectory $request $directoryDB $selectorMountPath
+  }}
+  route $selectorMountPathGlob $routeArgs {{request directoryDB selectorMountPath} {
+    gophser::ServeLinkDirectory $request $directoryDB $selectorMountPath
+  }}
 }
 
 
@@ -81,6 +91,7 @@ proc gophser::provideLinkDir {directoryDB selectorMountPath} {
 # Removes . directory element
 # Supports directory elements beginning with ~
 # This ensures there is a leading "/"
+# TODO: Put this in a collection of safety functions
 proc gophser::selectorToSafeFilePath {selector} {
   set selector [string map {" " "%20"} $selector]
   set elements [file split $selector]

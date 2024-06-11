@@ -12,7 +12,9 @@ proc gophser::init {port} {
   set listen [socket -server ::gophser::ClientConnect $port]
   set cache [cache create]
   # Add route to handle URL: selectors
-  route "URL:*" gophser::ServeURL
+  route "URL:*" {} {{request} {
+    gophser::ServeURL $request
+  }}
 }
 
 proc gophser::shutdown {} {
@@ -23,8 +25,10 @@ proc gophser::shutdown {} {
 
 # TODO: Rename
 # TODO: make pattern safe
-proc gophser::route {pattern handlerName} {
-  router::route $pattern $handlerName
+# funcArgs A list of arguments to use after the request when applying the func
+# func     A function suitable for the apply command
+proc gophser::route {pattern funcArgs func} {
+  router::route $pattern $funcArgs $func
 }
 
 
@@ -91,22 +95,25 @@ proc gophser::ReadSelector {sock} {
 
 
 proc gophser::HandleRequest {sock selector} {
-  set handler [router::getHandler $selector]
+  lassign [router::getHandler $selector] handlerArgs handler
   if {$handler eq {}} {
     # TODO: should we just have a selector not found handler?
     log warning "selector not found: $selector"
     SendError $sock "path not found"
     return
   }
-  # TODO: Better safer way of doing this?
+
   try {
-    set response [{*}$handler $selector]
-    AddResponse $sock $response
+    set request [dict create selector $selector]
+    set response [apply $handler $request {*}$handlerArgs]
   } on error err {
     log error "error running handler for selector: $selector - $err"
+    # TODO: create some sort of error response
     # TODO: close the sock?
   }
+  AddResponse $sock $response
 }
+
 
 
 proc gophser::AddResponse {sock response} {

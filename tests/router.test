@@ -11,14 +11,23 @@ apply {{} {
 }}
 
 
+set testFilesFn {{request} {testFiles}}
+set testFilesSlashFn {{request} {testFilesSlash}}
+set testFilesSplatFn {{request} {testFilesSplat}}
+set testEmptyFn {{request} {testEmpty}}
+set testRootFn {{request} {testRoot}}
+set testDirFilenameFn {{request} {testDirFilename}}
+set testServeURLFn {{request} {testServeURL}}
+
+
 # Create the routes to test against
-gophser::router::route "/files" testFiles
-gophser::router::route "/files/" testFilesSlash
-gophser::router::route "/files/*" testFilesSplat
-gophser::router::route "" testEmpty
-gophser::router::route "/" testRoot
-gophser::router::route "/*/*" testDirFilename
-gophser::router::route "URL:*" testServeURL
+gophser::router::route "/files" {} $testFilesFn
+gophser::router::route "/files/" {} $testFilesSlashFn
+gophser::router::route "/files/*" {} $testFilesSplatFn
+gophser::router::route "" {} $testEmptyFn
+gophser::router::route "/" {} $testRootFn
+gophser::router::route "/*/*" {} $testDirFilenameFn
+gophser::router::route "URL:*" {} $testServeURLFn
 
 
 test getHandler-1 {Return false if route not found} \
@@ -34,7 +43,7 @@ test getHandler-2 {Detect an empty pattern} \
   set selector ""
 } -body {
   gophser::router::getHandler $selector
-} -result testEmpty
+} -result [list {} $testEmptyFn]
 
 
 test getHandler-3 {Detect an empty pattern for the root with a trailing slash} \
@@ -42,7 +51,7 @@ test getHandler-3 {Detect an empty pattern for the root with a trailing slash} \
   set selector {/}
 } -body {
   gophser::router::getHandler $selector
-} -result testRoot
+} -result [list {} $testRootFn]
 
 
 test getHandler-4 {Detect a single splat on its own} \
@@ -50,7 +59,7 @@ test getHandler-4 {Detect a single splat on its own} \
   set selector {/files/fred.txt}
 } -body {
   gophser::router::getHandler $selector
-} -result testFilesSplat
+} -result [list {} $testFilesSplatFn]
 
 
 test getHandler-5 {Detect a single splat on its own against multiple sub-directories} \
@@ -58,7 +67,7 @@ test getHandler-5 {Detect a single splat on its own against multiple sub-directo
   set selector {/files/something/bob.txt}
 } -body {
   gophser::router::getHandler $selector
-} -result testFilesSplat
+} -result [list {} $testFilesSplatFn]
 
 
 test getHandler-6 {Detect named parameters} \
@@ -66,7 +75,7 @@ test getHandler-6 {Detect named parameters} \
   set selector {/dirA/someFile.txt}
 } -body {
   gophser::router::getHandler $selector
-} -result testDirFilename
+} -result [list {} $testDirFilenameFn]
 
 
 test getHandler-7 {Detect exact path} \
@@ -74,7 +83,7 @@ test getHandler-7 {Detect exact path} \
   set selector {/files}
 } -body {
   gophser::router::getHandler $selector
-} -result testFiles
+} -result [list {} $testFilesFn]
 
 
 test getHandler-8 {Detect exact path with trailing slash} \
@@ -82,10 +91,10 @@ test getHandler-8 {Detect exact path with trailing slash} \
   set selector {/files/}
 } -body {
   gophser::router::getHandler $selector
-} -result testFilesSlash
+} -result [list {} $testFilesSlashFn]
 
 
-test getHandler-8 {Check non standard path used with URL: prefix} \
+test getHandler-9 {Check non standard path used with URL: prefix} \
 -setup {
   set selectors {
     {URL:https://example.com/blog}
@@ -95,7 +104,7 @@ test getHandler-8 {Check non standard path used with URL: prefix} \
   lmap selector $selectors {
     gophser::router::getHandler $selector
   }
-} -result {testServeURL testServeURL}
+} -result [list [list {} $testServeURLFn] [list {} $testServeURLFn]]
 
 
 cleanupTests

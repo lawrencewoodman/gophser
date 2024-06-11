@@ -262,7 +262,9 @@ proc gophser::init {port} {
   set listen [socket -server ::gophser::ClientConnect $port]
   set cache [cache create]
   # Add route to handle URL: selectors
-  route "URL:*" gophser::ServeURL
+  route "URL:*" {} {{request} {
+    gophser::ServeURL $request
+  }}
 }
 
 proc gophser::shutdown {} {
@@ -273,8 +275,10 @@ proc gophser::shutdown {} {
 
 # TODO: Rename
 # TODO: make pattern safe
-proc gophser::route {pattern handlerName} {
-  router::route $pattern $handlerName
+# funcArgs A list of arguments to use after the request when applying the func
+# func     A function suitable for the apply command
+proc gophser::route {pattern funcArgs func} {
+  router::route $pattern $funcArgs $func
 }
 
 
@@ -341,22 +345,25 @@ proc gophser::ReadSelector {sock} {
 
 
 proc gophser::HandleRequest {sock selector} {
-  set handler [router::getHandler $selector]
+  lassign [router::getHandler $selector] handlerArgs handler
   if {$handler eq {}} {
     # TODO: should we just have a selector not found handler?
     log warning "selector not found: $selector"
     SendError $sock "path not found"
     return
   }
-  # TODO: Better safer way of doing this?
+
   try {
-    set response [{*}$handler $selector]
-    AddResponse $sock $response
+    set request [dict create selector $selector]
+    set response [apply $handler $request {*}$handlerArgs]
   } on error err {
     log error "error running handler for selector: $selector - $err"
+    # TODO: create some sort of error response
     # TODO: close the sock?
   }
+  AddResponse $sock $response
 }
+
 
 
 proc gophser::AddResponse {sock response} {
@@ -479,13 +486,13 @@ proc gophser::SendError {sock msg} {
 package require hetdb
 
 
-# selector           is the selector requested and isn't assumed to be safe
 # selectorMountPath  is the path that localDir resides in the selector hierarchy
 # TODO: Test how this handles an empty selector, the same as "/"?
 # TODO: Test that selector must begin with "/" this will help avoid selector
 # TODO: confusion - document this reason
-proc gophser::ServePath {localDir selectorMountPath selector} {
+proc gophser::ServePath {request localDir selectorMountPath} {
   variable cache
+  set selector [dict get $request selector]
   # TODO: Create a proc to do this neatly
   if {$selectorMountPath eq "/" && $selector eq ""} {
     set subPath ""
@@ -533,17 +540,16 @@ proc gophser::ServePath {localDir selectorMountPath selector} {
 
 # selectorMountPath is the path that localDir resides in the selector hierarchy
 #                   TODO: change to selectorPrefix?
-# selector is the complete path requested.  This is assumed to have
-#              been made safe.
 # TODO: Rename?
 # TODO: Format for linkDirectory  dict or hetdb?
 # TODO: Add a description to link directory entries
 # TODO: Add an intro text for first page
 # TODO: Add layout in which to list links or intro text for the directory
 # TODO: Test how this handles an empty selector, the same as "/"?
-proc gophser::ServeLinkDirectory {directoryDB selectorMountPath selector} {
+proc gophser::ServeLinkDirectory {request directoryDB selectorMountPath} {
   # TODO: Support caching? - needs testing
   variable cache
+  set selector [dict get $request selector]
   set menuText [cache fetch cache $selector]
   if {$menuText eq {}} {
     # TODO: Create a proc to do this neatly
@@ -596,7 +602,8 @@ proc gophser::ServeLinkDirectory {directoryDB selectorMountPath selector} {
 # that they can be served a html page which points to the URL.  This conforms
 # to:
 #   gopher://bitreich.org:70/1/scm/gopher-protocol/file/references/h_type.txt.gph
-proc gophser::ServeURL {selector} {
+proc gophser::ServeURL {request} {
+  set selector [dict get $request selector]
   set htmlTemplate {
   <HTML>
     <HEAD>
@@ -670,8 +677,13 @@ proc gophser::mount {localDir selectorMountPath} {
   }
 
   # Match with and without trailing slash
-  route $selectorMountPath [list gophser::ServePath $localDir $selectorMountPath]
-  route $selectorMountPathGlob [list gophser::ServePath $localDir $selectorMountPath]
+  set routeArgs [list $localDir $selectorMountPath]
+  route $selectorMountPath $routeArgs {{request localDir selectorMountPath} {
+    gophser::ServePath $request $localDir $selectorMountPath
+  }}
+  route $selectorMountPathGlob $routeArgs {{request localDir selectorMountPath} {
+    gophser::ServePath $request $localDir $selectorMountPath
+  }}
 }
 
 
@@ -689,8 +701,13 @@ proc gophser::provideLinkDir {directoryDB selectorMountPath} {
     set selectorMountPathGlob "$selectorMountPath/*"
   }
   # TODO: Find a better way of doing this
-  route $selectorMountPath [list gophser::ServeLinkDirectory $directoryDB $selectorMountPath]
-  route $selectorMountPathGlob [list gophser::ServeLinkDirectory $directoryDB $selectorMountPath]
+  set routeArgs [list $directoryDB $selectorMountPath]
+  route $selectorMountPath $routeArgs {{request directoryDB selectorMountPath} {
+    gophser::ServeLinkDirectory $request $directoryDB $selectorMountPath
+  }}
+  route $selectorMountPathGlob $routeArgs {{request directoryDB selectorMountPath} {
+    gophser::ServeLinkDirectory $request $directoryDB $selectorMountPath
+  }}
 }
 
 
@@ -704,6 +721,7 @@ proc gophser::provideLinkDir {directoryDB selectorMountPath} {
 # Removes . directory element
 # Supports directory elements beginning with ~
 # This ensures there is a leading "/"
+# TODO: Put this in a collection of safety functions
 proc gophser::selectorToSafeFilePath {selector} {
   set selector [string map {" " "%20"} $selector]
   set elements [file split $selector]
@@ -993,27 +1011,27 @@ namespace eval gophser::router {
 
 # TODO: Restrict pattern and make safe
 # TODO: Sort routes after adding from most specific to most general
-proc gophser::router::route {pattern handlerName} {
+# funcArgs A list of arguments to use after the request when applying the func
+# func     A function suitable for the apply command
+proc gophser::router::route {pattern funcArgs func} {
   variable routes
-  lappend routes [list $pattern $handlerName]
+  lappend routes [list $pattern $funcArgs $func]
   Sort
 }
 
 
 # TODO: rename
-# TODO: Assumes selector is safe at this point?
-# Perhaps use namespace to determine whether input has been checked
 proc gophser::router::getHandler {selector} {
   variable routes
   foreach route $routes {
-    # TODO: Rename handlerName?
-    lassign $route pattern handlerName
+    lassign $route pattern funcArgs func
     if {[string match $pattern $selector]} {
-      return $handlerName
+      return [list $funcArgs $func]
     }
   }
   return {}
 }
+
 
 
 # Sort the routes from most specific to least specific

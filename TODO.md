@@ -23,6 +23,8 @@
   - Pass mount point and sub selector to handler
 * Have a selector command which works like file but joins and splits elements of a selector always using / as path separator if wanted
 * Look at use of string trimleft to remove "/" - doesn't feel like the best way or the best place to do it
+* string trim selectors on receiving them
+* remove acceptance of spaces from URL:
 
 
 ## Future Features

@@ -9,13 +9,13 @@
 package require hetdb
 
 
-# selector           is the selector requested and isn't assumed to be safe
 # selectorMountPath  is the path that localDir resides in the selector hierarchy
 # TODO: Test how this handles an empty selector, the same as "/"?
 # TODO: Test that selector must begin with "/" this will help avoid selector
 # TODO: confusion - document this reason
-proc gophser::ServePath {localDir selectorMountPath selector} {
+proc gophser::ServePath {request localDir selectorMountPath} {
   variable cache
+  set selector [dict get $request selector]
   # TODO: Create a proc to do this neatly
   if {$selectorMountPath eq "/" && $selector eq ""} {
     set subPath ""
@@ -63,17 +63,16 @@ proc gophser::ServePath {localDir selectorMountPath selector} {
 
 # selectorMountPath is the path that localDir resides in the selector hierarchy
 #                   TODO: change to selectorPrefix?
-# selector is the complete path requested.  This is assumed to have
-#              been made safe.
 # TODO: Rename?
 # TODO: Format for linkDirectory  dict or hetdb?
 # TODO: Add a description to link directory entries
 # TODO: Add an intro text for first page
 # TODO: Add layout in which to list links or intro text for the directory
 # TODO: Test how this handles an empty selector, the same as "/"?
-proc gophser::ServeLinkDirectory {directoryDB selectorMountPath selector} {
+proc gophser::ServeLinkDirectory {request directoryDB selectorMountPath} {
   # TODO: Support caching? - needs testing
   variable cache
+  set selector [dict get $request selector]
   set menuText [cache fetch cache $selector]
   if {$menuText eq {}} {
     # TODO: Create a proc to do this neatly
@@ -126,7 +125,8 @@ proc gophser::ServeLinkDirectory {directoryDB selectorMountPath selector} {
 # that they can be served a html page which points to the URL.  This conforms
 # to:
 #   gopher://bitreich.org:70/1/scm/gopher-protocol/file/references/h_type.txt.gph
-proc gophser::ServeURL {selector} {
+proc gophser::ServeURL {request} {
+  set selector [dict get $request selector]
   set htmlTemplate {
   <HTML>
     <HEAD>

@@ -48,11 +48,6 @@ proc outputStats {selectors timings} {
 }
 
 set configScript {
-  proc sendWord {selector} {
-    set word [gophser::stripSelectorPrefix "/say" $selector]
-    return [dict create type text value [string map {"%20" " "} $word]]
-  }
-
   proc makeBigStr {} {
     set str {}
     for {set i 0} {$i < 9999} {incr i} {
@@ -61,14 +56,18 @@ set configScript {
     return $str
   }
 
-  proc sendBigFile {bigStr selector} {
-    return [dict create type text value $bigStr]
-  }
 
   set bigStr [makeBigStr]
   gophser::log suppress all
-  gophser::route "/bigfile" [list sendBigFile $bigStr]
-  gophser::route "/say/*" sendWord
+  gophser::route "/bigfile" [list $bigStr] {{request bigStr} {
+    set selector [dict get $request selector]
+    return [dict create type text value $bigStr]
+  }}
+  gophser::route "/say/*" {} {{request} {
+    set selector [dict get $request selector]
+    set word [gophser::stripSelectorPrefix "/say" $selector]
+    return [dict create type text value [string map {"%20" " "} $word]]
+  }}
   gophser::mount [file normalize $repoRootDir] "/"
 }
 
