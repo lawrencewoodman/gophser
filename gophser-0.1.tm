@@ -566,7 +566,7 @@ proc gophser::ServeLinkDirectory {request directoryDB selectorMountPath} {
       # TODO: Display an intro text - perhaps with some links
       # TODO: Sort into alphabetical order
       hetdb for $directoryDB tag {name title} {
-        set menu [menu url $menu $tag_title "gopher://localhost:7070/1$selectorMountPath/$tag_name"]
+        set menu [menu item $menu menu $tag_title "$selectorMountPath/$tag_name"]
       }
     } else {
       set menu [menu info $menu "Tags: [join $selectorTags ", "]"]
@@ -1031,7 +1031,6 @@ proc gophser::router::getHandler {selector} {
   }
   return {}
 }
-
 
 
 # Sort the routes from most specific to least specific
