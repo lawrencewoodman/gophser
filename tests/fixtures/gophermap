@@ -3,11 +3,14 @@
 item text "README.md - find all about this directory" README.md
 item menu "The example.com site" "/" example.com
 
-desc hello.txt {} {This is a description of hello.txt
-it is generated using the describe command and this demonstrates how it
-will wrap the text}
+desc hello.txt {
+  description {This is a description of hello.txt
+               it is generated using the describe command and this demonstrates how it
+               will wrap the text}}
 
-desc docs.txt {Documentation} {Did you know that there is some interesting information
-in some documentation}
+desc docs.txt {
+  username {Documentation}
+  description {Did you know that there is some interesting information
+              in some documentation}}
 
 dir

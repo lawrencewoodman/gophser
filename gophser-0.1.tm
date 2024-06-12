@@ -129,7 +129,7 @@ proc gophser::gophermap::process {_menu localDir selector selectorMountPath sele
     $interp hide $command
   }
 
-  $interp alias desc ::gophser::gophermap::Describe
+  $interp alias desc ::gophser::gophermap::Desc
   $interp alias dir ::gophser::gophermap::Dir $localDir $selectorMountPath $selectorSubPath
   $interp alias h1 ::gophser::gophermap::H1
   $interp alias h2 ::gophser::gophermap::H2
@@ -138,6 +138,7 @@ proc gophser::gophermap::process {_menu localDir selector selectorMountPath sele
   $interp alias item ::gophser::gophermap::Item
   $interp alias log ::gophser::gophermap::Log
   $interp alias url ::gophser::gophermap::Url
+  # TODO: Add menu command?
 
   set gophermapPath [file join $selectorLocalDir gophermap]
   try {
@@ -174,10 +175,10 @@ proc gophser::gophermap::Item {command args} {
 
 
 # TODO: Be able to add extra info next to filename such as size and date
-proc gophser::gophermap::Describe {filename userName {description {}}} {
+# TODO: verify description is valid
+proc gophser::gophermap::Desc {filename description} {
   variable descriptions
-  if {$userName eq ""} {set userName $filename}
-  dict set descriptions $filename [list $userName $description]
+  dict set descriptions $filename $description
 }
 
 
@@ -227,6 +228,7 @@ proc gophser::gophermap::Info {text} {
 
 
 # Display the files in the current directory
+# TODO: be able to specify a glob pattern?
 proc gophser::gophermap::Dir {localDir selectorMountPath selectorSubPath} {
   variable menu
   variable descriptions
@@ -243,9 +245,9 @@ proc gophser::gophermap::Log {command args} {
 }
 
 
-proc gophser::gophermap::Url {userName url } {
+proc gophser::gophermap::Url {username url } {
   variable menu
-  set menu [::gophser::menu::url $menu $userName $url]
+  set menu [::gophser::menu::url $menu $username $url]
 }
 
 # Gopher Server Handling Code
@@ -773,7 +775,7 @@ proc gophser::MakeSelectorLocalPath {localDir selectorSubPath} {
 # Make a list of directory entries for ListDir
 # type is f for file, d for directory
 # names is a list of file/dir names
-# descriptions is a dict with key file/dir name and values: {userName description}
+# TODO: describe descriptions
 proc gophser::MakeDirEntries {type names descriptions} {
   set dirEntries [list]
   foreach name $names {
@@ -781,16 +783,29 @@ proc gophser::MakeDirEntries {type names descriptions} {
       # Don't display the gophermap
       continue
     }
+    # TODO: revisit this
+    # TODO: Create a dictgetdef function which uses 8.7 dict getdef if present
+    # TODO: do we want to pass a list or dict back
+    # TODO: validate descriptions dict
+    set username $name
+    set description ""
     if {[dict exists $descriptions $name]} {
-      lassign [dict get $descriptions $name] userName description
-    } else {
-      set userName $name
-      set description ""
+      set filedesc [dict get $descriptions $name]
+      if {[dict exists $filedesc username]} {
+        set username [dict get $filedesc username]
+      }
+
+      if {[dict exists $filedesc description]} {
+        set description [dict get $filedesc description]
+      }
     }
-    lappend dirEntries [list $name $type $userName $description]
+    lappend dirEntries [list $name $type $username $description]
   }
   return $dirEntries
 }
+
+
+
 
 
 # listDir ?switches? menu localDir selectorMountPath selectorSubPath
@@ -837,7 +852,7 @@ proc gophser::ListDir {args} {
 
   set prevFileDescribed false   ; # This prevents a double proceeding new line
   foreach dirEntry $dirEntries {
-    lassign $dirEntry localName type userName description
+    lassign $dirEntry localName type username description
 
     # If a description exists then put a blank line before file
     if {!$prevFileDescribed && $description ne ""} {
@@ -849,10 +864,10 @@ proc gophser::ListDir {args} {
 
     set selector [MakeSelectorPath $selectorMountPath $selectorSubPath $localName]
     if {$type eq "f"} {
-      set menu [menu item $menu text $userName $selector]
+      set menu [menu item $menu text $username $selector]
     } else {
       # Directory
-      set menu [menu item $menu menu $userName $selector]
+      set menu [menu item $menu menu $username $selector]
     }
 
     # If a description exists then put it after the file

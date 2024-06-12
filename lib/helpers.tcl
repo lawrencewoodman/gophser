@@ -138,7 +138,7 @@ proc gophser::MakeSelectorLocalPath {localDir selectorSubPath} {
 # Make a list of directory entries for ListDir
 # type is f for file, d for directory
 # names is a list of file/dir names
-# descriptions is a dict with key file/dir name and values: {userName description}
+# TODO: describe descriptions
 proc gophser::MakeDirEntries {type names descriptions} {
   set dirEntries [list]
   foreach name $names {
@@ -146,16 +146,29 @@ proc gophser::MakeDirEntries {type names descriptions} {
       # Don't display the gophermap
       continue
     }
+    # TODO: revisit this
+    # TODO: Create a dictgetdef function which uses 8.7 dict getdef if present
+    # TODO: do we want to pass a list or dict back
+    # TODO: validate descriptions dict
+    set username $name
+    set description ""
     if {[dict exists $descriptions $name]} {
-      lassign [dict get $descriptions $name] userName description
-    } else {
-      set userName $name
-      set description ""
+      set filedesc [dict get $descriptions $name]
+      if {[dict exists $filedesc username]} {
+        set username [dict get $filedesc username]
+      }
+
+      if {[dict exists $filedesc description]} {
+        set description [dict get $filedesc description]
+      }
     }
-    lappend dirEntries [list $name $type $userName $description]
+    lappend dirEntries [list $name $type $username $description]
   }
   return $dirEntries
 }
+
+
+
 
 
 # listDir ?switches? menu localDir selectorMountPath selectorSubPath
@@ -202,7 +215,7 @@ proc gophser::ListDir {args} {
 
   set prevFileDescribed false   ; # This prevents a double proceeding new line
   foreach dirEntry $dirEntries {
-    lassign $dirEntry localName type userName description
+    lassign $dirEntry localName type username description
 
     # If a description exists then put a blank line before file
     if {!$prevFileDescribed && $description ne ""} {
@@ -214,10 +227,10 @@ proc gophser::ListDir {args} {
 
     set selector [MakeSelectorPath $selectorMountPath $selectorSubPath $localName]
     if {$type eq "f"} {
-      set menu [menu item $menu text $userName $selector]
+      set menu [menu item $menu text $username $selector]
     } else {
       # Directory
-      set menu [menu item $menu menu $userName $selector]
+      set menu [menu item $menu menu $username $selector]
     }
 
     # If a description exists then put it after the file

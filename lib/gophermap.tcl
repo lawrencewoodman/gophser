@@ -32,7 +32,7 @@ proc gophser::gophermap::process {_menu localDir selector selectorMountPath sele
     $interp hide $command
   }
 
-  $interp alias desc ::gophser::gophermap::Describe
+  $interp alias desc ::gophser::gophermap::Desc
   $interp alias dir ::gophser::gophermap::Dir $localDir $selectorMountPath $selectorSubPath
   $interp alias h1 ::gophser::gophermap::H1
   $interp alias h2 ::gophser::gophermap::H2
@@ -41,6 +41,7 @@ proc gophser::gophermap::process {_menu localDir selector selectorMountPath sele
   $interp alias item ::gophser::gophermap::Item
   $interp alias log ::gophser::gophermap::Log
   $interp alias url ::gophser::gophermap::Url
+  # TODO: Add menu command?
 
   set gophermapPath [file join $selectorLocalDir gophermap]
   try {
@@ -77,10 +78,10 @@ proc gophser::gophermap::Item {command args} {
 
 
 # TODO: Be able to add extra info next to filename such as size and date
-proc gophser::gophermap::Describe {filename userName {description {}}} {
+# TODO: verify description is valid
+proc gophser::gophermap::Desc {filename description} {
   variable descriptions
-  if {$userName eq ""} {set userName $filename}
-  dict set descriptions $filename [list $userName $description]
+  dict set descriptions $filename $description
 }
 
 
@@ -130,6 +131,7 @@ proc gophser::gophermap::Info {text} {
 
 
 # Display the files in the current directory
+# TODO: be able to specify a glob pattern?
 proc gophser::gophermap::Dir {localDir selectorMountPath selectorSubPath} {
   variable menu
   variable descriptions
@@ -146,7 +148,7 @@ proc gophser::gophermap::Log {command args} {
 }
 
 
-proc gophser::gophermap::Url {userName url } {
+proc gophser::gophermap::Url {username url } {
   variable menu
-  set menu [::gophser::menu::url $menu $userName $url]
+  set menu [::gophser::menu::url $menu $username $url]
 }
