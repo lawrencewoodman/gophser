@@ -135,40 +135,18 @@ proc gophser::MakeSelectorLocalPath {localDir selectorSubPath} {
 }
 
 
-# Make a list of directory entries for ListDir
-# type is f for file, d for directory
-# names is a list of file/dir names
-# TODO: describe descriptions
-proc gophser::MakeDirEntries {type names descriptions} {
-  set dirEntries [list]
-  foreach name $names {
-    if {$name eq "gophermap"} {
-      # Don't display the gophermap
-      continue
-    }
-    # TODO: revisit this
-    # TODO: Create a dictgetdef function which uses 8.7 dict getdef if present
-    # TODO: do we want to pass a list or dict back
-    # TODO: validate descriptions dict
-    set username $name
-    set description ""
-    if {[dict exists $descriptions $name]} {
-      set filedesc [dict get $descriptions $name]
-      if {[dict exists $filedesc username]} {
-        set username [dict get $filedesc username]
-      }
-
-      if {[dict exists $filedesc description]} {
-        set description [dict get $filedesc description]
-      }
-    }
-    lappend dirEntries [list $name $type $username $description]
+# TODO: define using dict getdef if present
+proc gophser::DictGetDef {dictionaryValue args} {
+  if {[llength $args] < 2} {
+    return -code "wrong # args: should be \"DictGetDef dictionaryValue ?key ...? key default\""
   }
-  return $dirEntries
+  set default [lindex $args end]
+  set keys [lrange $args 0 end-1]
+  if {[dict exists $dictionaryValue {*}$keys]} {
+    return [dict get $dictionaryValue {*}$keys]
+  }
+  return $default
 }
-
-
-
 
 
 # listDir ?switches? menu localDir selectorMountPath selectorSubPath
@@ -209,34 +187,38 @@ proc gophser::ListDir {args} {
   set files [glob -tails -type f -nocomplain -directory $selectorLocalDir *]
   set files [lsort -nocase $files]
 
-  set dirEntriesD [MakeDirEntries d $dirs $descriptions]
-  set dirEntriesF [MakeDirEntries f $files $descriptions]
-  set dirEntries [concat $dirEntriesD $dirEntriesF]
-
   set prevFileDescribed false   ; # This prevents a double proceeding new line
-  foreach dirEntry $dirEntries {
-    lassign $dirEntry localName type username description
+  foreach entriesDF [list [list d $dirs] [list f $files]] {
+    lassign $entriesDF type entries
+    foreach localName $entries {
+      # TODO: Rename gophermap?
+      if {$localName eq "gophermap"} {
+        continue
+      }
+      set description [DictGetDef $descriptions $localName description ""]
+      set username [DictGetDef $descriptions $localName username $localName]
 
-    # If a description exists then put a blank line before file
-    if {!$prevFileDescribed && $description ne ""} {
-      set menu [menu info $menu ""]
-      set prevFileDescribed true
-    } else {
-      set prevFileDescribed false
-    }
+      # If a description exists then put a blank line before file
+      if {!$prevFileDescribed && $description ne ""} {
+        set menu [menu info $menu ""]
+        set prevFileDescribed true
+      } else {
+        set prevFileDescribed false
+      }
 
-    set selector [MakeSelectorPath $selectorMountPath $selectorSubPath $localName]
-    if {$type eq "f"} {
-      set menu [menu item $menu text $username $selector]
-    } else {
-      # Directory
-      set menu [menu item $menu menu $username $selector]
-    }
+      set selector [MakeSelectorPath $selectorMountPath $selectorSubPath $localName]
+      if {$type eq "f"} {
+        set menu [menu item $menu text $username $selector]
+      } else {
+        # Directory
+        set menu [menu item $menu menu $username $selector]
+      }
 
-    # If a description exists then put it after the file
-    if {$description ne ""} {
-      set menu [menu info $menu $description]
-      set menu [menu info $menu ""]
+      # If a description exists then put it after the file
+      if {$description ne ""} {
+        set menu [menu info $menu $description]
+        set menu [menu info $menu ""]
+      }
     }
   }
   return $menu
