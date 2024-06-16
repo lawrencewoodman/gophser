@@ -154,7 +154,7 @@ proc gophser::ReadFile {filename} {
   # TODO: put filename handling code into a separate function
   set filename [string trimleft $filename "."]
   set nativeFilename [file normalize $filename]
-  set fd [open $nativeFilename]
+  set fd [open $nativeFilename {RDONLY BINARY}]
   set data [read $fd]
   close $fd
   return $data
@@ -190,27 +190,20 @@ proc gophser::SendResponseWhenWritable {sock} {
       return
     }
     text {
-      set str [string range $value 0 10000]
-      set value [string range $value 10001 end]
+      # TODO: find a way of loading and sending parts of files
+#      set str [string range $value 0 10000]
+#      set value [string range $value 10001 end]
 
       try {
-        puts -nonewline $sock $str
+        puts -nonewline $sock $value
       } on error err {
-        dict unset responses $sock
         # TODO: handle error differently
         puts stderr "Error writing to socket: $err"
-        catch {close $sock}
-        return
       }
 
-      # TODO: Benchmark if string length is quicker
-      if {$value eq {}} {
-        dict unset responses $sock
-        # TODO: catch error and log if present
-        catch {close $sock}
-        return
-      }
-      dict set responses $sock value $value
+      dict unset responses $sock
+      # TODO: catch error and log if present
+      catch {close $sock}
     }
     default {
       error "unknown type: $type"

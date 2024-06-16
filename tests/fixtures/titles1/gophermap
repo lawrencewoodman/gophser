@@ -1,0 +1,11 @@
+menu {
+  title {A Nice Big Size 1 Header}
+  sections {a b}
+}
+
+section {
+  a {title {A Medium Size 2 Header}}
+  b {title {Medium}}
+  # TODO: Test text too long
+}
+

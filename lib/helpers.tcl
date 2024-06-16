@@ -149,7 +149,8 @@ proc gophser::DictGetDef {dictionaryValue args} {
 }
 
 
-# listDir ?switches? menu localDir selectorMountPath selectorSubPath
+# TODO: Pass descriptions as arg rather than via switch
+# listDir ?switches? menu selectorLocalDir selectorMountPath selectorSubPath
 # switches:
 #  -descriptions descriptions  Dictionary of descriptions for each filename
 #
@@ -180,12 +181,12 @@ proc gophser::ListDir {args} {
     set descriptions [dict create]
   }
 
-  lassign $args menu localDir selectorMountPath selectorSubPath
-  set selectorLocalDir [MakeSelectorLocalPath $localDir $selectorSubPath]
+  lassign $args menu selectorLocalDir selectorMountPath selectorSubPath
   set dirs [glob -tails -type d -nocomplain -directory $selectorLocalDir *]
   set dirs [lsort -nocase $dirs]
   set files [glob -tails -type f -nocomplain -directory $selectorLocalDir *]
   set files [lsort -nocase $files]
+
 
   set prevFileDescribed false   ; # This prevents a double proceeding new line
   foreach entriesDF [list [list d $dirs] [list f $files]] {
@@ -197,6 +198,7 @@ proc gophser::ListDir {args} {
       }
       set description [DictGetDef $descriptions $localName description ""]
       set username [DictGetDef $descriptions $localName username $localName]
+      set group [DictGetDef $descriptions $localName group {}]
 
       # If a description exists then put a blank line before file
       if {!$prevFileDescribed && $description ne ""} {
@@ -214,9 +216,30 @@ proc gophser::ListDir {args} {
         set menu [menu item $menu menu $username $selector]
       }
 
+      foreach groupItem $group {
+        lassign $groupItem groupItemName groupItemUsername
+        set selector [MakeSelectorPath $selectorMountPath $selectorSubPath $groupItemName]
+
+        if {$groupItemUsername eq ""} {
+          set groupItemUsername $groupItemName
+        }
+        # If a directory
+        if {[lsearch $dirs $groupItemName] >= 0} {
+          set menu [menu item $menu menu $groupItemUsername $selector]
+        } else {
+          # Else a file
+          # TODO: check exists in files because may not exist at all
+          # TODO: file type detection using extension and a file program?
+          set menu [menu item $menu image $groupItemUsername $selector]
+        }
+      }
+
       # If a description exists then put it after the file
       if {$description ne ""} {
         set menu [menu info $menu $description]
+      }
+
+      if {$description ne {} || $group ne {}} {
         set menu [menu info $menu ""]
       }
     }

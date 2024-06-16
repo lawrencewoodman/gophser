@@ -24,7 +24,8 @@ test process-1 {Check render adds correct .<cr><lf> ending to menu} \
   "0README.md - find all about this directory\tREADME.md\tlocalhost\t70\r\n" \
   "1The example.com site\t/\texample.com\t70\r\n" \
   "1error\t/error\tlocalhost\t70\r\n" \
-  "1titles\t/titles\tlocalhost\t70\r\n" \
+  "1titles1\t/titles1\tlocalhost\t70\r\n" \
+  "1titles2\t/titles2\tlocalhost\t70\r\n" \
   "i\tFAKE\tlocalhost\t70\r\n" \
   "0Documentation\t/docs.txt\tlocalhost\t70\r\n" \
   "iDid you know that there is some interesting information in some documentation\tFAKE\tlocalhost\t70\r\n" \
@@ -47,13 +48,14 @@ test process-2 {Check returns errors properly} \
 } -body {
   set m [gophser::gophermap::process $m $errorDir $selector "/" ""]
   gophser::menu render $m
-} -returnCodes {error} -result {error processing: /home/lorry/data/dev/lib/gophser/tests/fixtures/error/gophermap, for selector: /, can't read "b": no such variable}
+} -returnCodes {error} -result {error processing: /home/lorry/data/dev/lib/gophser/tests/fixtures/error/gophermap, for selector: /, structure isn't valid}
 
 
-test process-3 {Check headers display properly} \
+# TODO: Add and test level 3 headers
+test process-3a {Check headers display properly} \
 -setup {
   set m [gophser::menu create]
-  set fixturesDir [file join [TestHelpers::getRepoRootDir] tests fixtures titles]
+  set fixturesDir [file join [TestHelpers::getRepoRootDir] tests fixtures titles1]
   set selector "/"
 } -body {
   set m [gophser::gophermap::process $m $fixturesDir $selector "/" ""]
@@ -63,24 +65,30 @@ test process-3 {Check headers display properly} \
   "i= A Nice Big Size 1 Header =\tFAKE\tlocalhost\t70\r\n" \
   "i============================\tFAKE\tlocalhost\t70\r\n" \
   "i\tFAKE\tlocalhost\t70\r\n" \
-  "i=======\tFAKE\tlocalhost\t70\r\n" \
-  "i= Big =\tFAKE\tlocalhost\t70\r\n" \
-  "i=======\tFAKE\tlocalhost\t70\r\n" \
-  "i\tFAKE\tlocalhost\t70\r\n" \
   "iA Medium Size 2 Header\tFAKE\tlocalhost\t70\r\n" \
   "i======================\tFAKE\tlocalhost\t70\r\n" \
   "i\tFAKE\tlocalhost\t70\r\n" \
   "iMedium\tFAKE\tlocalhost\t70\r\n" \
   "i======\tFAKE\tlocalhost\t70\r\n" \
   "i\tFAKE\tlocalhost\t70\r\n" \
-  "iA Small Size 3 Header\tFAKE\tlocalhost\t70\r\n" \
-  "i---------------------\tFAKE\tlocalhost\t70\r\n" \
-  "i\tFAKE\tlocalhost\t70\r\n" \
-  "ismall\tFAKE\tlocalhost\t70\r\n" \
-  "i-----\tFAKE\tlocalhost\t70\r\n" \
-  "i\tFAKE\tlocalhost\t70\r\n" \
   ".\r\n"]
 
+
+# TODO: Unify process-3a and process-3b
+test process-3b {Check headers display properly} \
+-setup {
+  set m [gophser::menu create]
+  set fixturesDir [file join [TestHelpers::getRepoRootDir] tests fixtures titles2]
+  set selector "/"
+} -body {
+  set m [gophser::gophermap::process $m $fixturesDir $selector "/" ""]
+  gophser::menu render $m
+} -result [string cat \
+  "i=======\tFAKE\tlocalhost\t70\r\n" \
+  "i= Big =\tFAKE\tlocalhost\t70\r\n" \
+  "i=======\tFAKE\tlocalhost\t70\r\n" \
+  "i\tFAKE\tlocalhost\t70\r\n" \
+  ".\r\n"]
 
 
 cleanupTests

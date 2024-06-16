@@ -44,13 +44,15 @@ proc gophser::ServePath {request localDir selectorMountPath} {
     # TODO: Should this be moved above?
     set menuText [cache fetch cache $selector]
     if {$menuText eq {}} {
-      set selectorLocalPath [MakeSelectorLocalPath $localDir $subPath]
+      set selectorLocalDir [MakeSelectorLocalPath $localDir $subPath]
       set menu [menu create localhost 7070]
       # TODO: Rename gophermap
-      if {[file exists [file join $selectorLocalPath gophermap]]} {
+      if {[file exists [file join $selectorLocalDir gophermap]]} {
+        # TODO: could we just pass selectorLocalDir into process? or even open the
+        # TODO: the gophermap here and then send it to process?
         set menu [gophermap::process $menu $localDir $selector $selectorMountPath $subPath]
       } else {
-        set menu [ListDir $menu $localDir $selectorMountPath $subPath]
+        set menu [ListDir $menu $selectorLocalDir $selectorMountPath $subPath]
       }
       set menuText [menu render $menu]
       cache store cache $selector $menuText

@@ -67,7 +67,7 @@ proc gophser::menu::item {menu itemType userName selector {hostname {}} {port {}
     set port [dict get $menu defaults port]
   }
 
-  set itemTypeMap {text 0 0 0 menu 1 1 1 info i i i html h h h}
+  set itemTypeMap {text 0 0 0 menu 1 1 1 info i i i html h h h image I I I}
   if {![dict exists $itemTypeMap $itemType]} {
     return -code error "unknown item type: $itemType"
   }

@@ -16,101 +16,140 @@ namespace eval gophser::gophermap {
 }
 
 
-proc gophser::gophermap::process {_menu localDir selector selectorMountPath selectorSubPath} {
-  variable menu
+proc gophser::gophermap::process {menu localDir selector selectorMountPath selectorSubPath} {
   variable descriptions
 
-  set menu $_menu
   set selectorLocalDir [::gophser::MakeSelectorLocalPath $localDir $selectorSubPath]
-  set descriptions [dict create]
-
-  set interp [interp create -safe]
-
-  # Remove all the variables and commands from the interpreter
-  $interp eval {unset {*}[info vars]}
-  foreach command [$interp eval {info commands}] {
-    $interp hide $command
-  }
-
-  $interp alias desc ::gophser::gophermap::Desc
-  $interp alias dir ::gophser::gophermap::Dir $localDir $selectorMountPath $selectorSubPath
-  $interp alias h1 ::gophser::gophermap::H1
-  $interp alias h2 ::gophser::gophermap::H2
-  $interp alias h3 ::gophser::gophermap::H3
-  $interp alias info ::gophser::gophermap::Info
-  $interp alias item ::gophser::gophermap::Item
-  $interp alias log ::gophser::gophermap::Log
-  $interp alias url ::gophser::gophermap::Url
-  # TODO: Add menu command?
-
   set gophermapPath [file join $selectorLocalDir gophermap]
+
   try {
-    $interp invokehidden source $gophermapPath
+    set fd [open $gophermapPath r]
+    set db [::read $fd]
+    close $fd
   } on error err {
+    # TOOD: log error
     return -code error "error processing: $gophermapPath, for selector: $selector, $err"
   }
 
+  # TODO: create a validate command
+  if {![IsDict $db]} {
+    # TOOD: log error and improve error message
+    return -code error "error processing: $gophermapPath, for selector: $selector, structure isn't valid"
+  }
+
+  return [ProcessMenu $menu $db $selectorLocalDir $selector $selectorMountPath $selectorSubPath]
+}
+
+
+# Returns whether value is a valid dictionary
+# TODO: Place somewhere else
+proc gophser::gophermap::IsDict value {
+  expr {![catch {dict size $value}]}
+}
+
+
+# TODO: refine and reduce if possible the paths being passed as args
+proc gophser::gophermap::ProcessMenu {menu db selectorLocalDir selector selectorMountPath selectorSubPath} {
+  # TODO: in validation table menu must exist
+  if {[dict exists $db menu title]} {
+    set menu [H1 $menu [dict get $db menu title]]
+  }
+  set sections [::gophser::DictGetDef $db menu sections {}]
+  foreach sectionID $sections {
+    set menu [ProcessSection $menu $db $sectionID $selectorLocalDir $selector $selectorMountPath $selectorSubPath]
+  }
   return $menu
 }
 
 
-# TODO: Rethink this
-# TODO: Should probably turn the args into vars before passing to maintain interface
-proc gophser::gophermap::Item {command args} {
-  variable menu
-  switch -- $command {
-    info {
-      set menu [::gophser::menu::info $menu {*}$args]
-    }
-    text {
-      # TODO: ensure can only include files in the current location?
-      set menu [::gophser::menu::item $menu text {*}$args]
-    }
-    menu {
-      # TODO: ensure can only include files in the current location?
-      set menu [::gophser::menu::item $menu menu {*}$args]
-    }
-    default {
-      return -code error "menu: invalid command: $command"
-    }
+# TODO: consider arg order here and in other commands
+# TODO: Cache sections?
+proc gophser::gophermap::ProcessSection {menu db sectionID selectorLocalDir selector selectorMountPath selectorSubPath} {
+  if {![dict exists $db section]} {
+    # TODO: raise error and log error if section doesn't exist
   }
+  if {![dict exists $db section $sectionID]} {
+    # TODO: raise error and log error if sectionID doesn't exist
+  }
+
+  set section [dict get $db section $sectionID]
+  if {[dict exists $section title]} {
+    set menu [H2 $menu [dict get $section title]]
+  }
+
+  if {[dict exists $section intro]} {
+    foreach line [dict get $section intro] {
+      set menu [::gophser::menu::info $menu $line]
+    }
+    set menu [::gophser::menu::info $menu ""]
+  }
+
+
+  # TODO: Rethink items as not really happy with it
+  set menu [ProcessItems $menu [::gophser::DictGetDef $section items {}]]
+
+  if {[dict exists $section dir]} {
+    # TODO: add support for a filepath or pattern or other options, sort?
+    set descriptions [::gophser::DictGetDef $db description {}]
+    set menu [gophser::gophermap::Dir $menu $descriptions $selectorLocalDir \
+                                      $selectorMountPath $selectorSubPath]
+  }
+  return $menu
+
 }
 
 
-# TODO: Be able to add extra info next to filename such as size and date
-# TODO: verify description is valid
-proc gophser::gophermap::Desc {filename description} {
-  variable descriptions
-  dict set descriptions $filename $description
+proc gophser::gophermap::ProcessItems {menu items} {
+  # TODO: Rethink items as not really happy with it
+  foreach item $items {
+    # TODO: support another key for info types, such as text rather than username?
+    set item_username [::gophser::DictGetDef $item username ""]
+    set item_type [::gophser::DictGetDef $item type ""]
+    set item_selector [::gophser::DictGetDef $item selector ""]
+    set item_hostname [::gophser::DictGetDef $item hostname ""]
+    set item_port [::gophser::DictGetDef $item port ""]
+    # TODO: this will remove defaults from hostname and port and needs to be hardened
+    # TODO: add ability to addd description
+    # TODO: Should catch and rewrap errors
+    set menu [::gophser::menu::item $menu $item_type $item_username \
+                                    $item_selector $item_hostname $item_port]
+  }
+  return $menu
 }
 
 
-proc gophser::gophermap::H1 {text} {
+proc gophser::gophermap::H1 {menu text} {
   set textlen [string length $text]
   if {$textlen > 65} {
     # TODO: Generate a warning
   }
   # TODO: Should we call menu:: directory for H1, H2 and H3
-  Item info [string repeat "=" [expr {$textlen+4}]]
-  Item info "= $text ="
-  Item info [string repeat "=" [expr {$textlen+4}]]
-  Item info ""
+  #
+
+  set menu [::gophser::menu::info $menu [string repeat "=" [expr {$textlen+4}]]]
+  set menu [::gophser::menu::info $menu "= $text ="]
+  set menu [::gophser::menu::info $menu [string repeat "=" [expr {$textlen+4}]]]
+  set menu [::gophser::menu::info $menu ""]
+  return $menu
 }
 
 
-proc gophser::gophermap::H2 {text} {
+proc gophser::gophermap::H2 {menu text} {
   set textlen [string length $text]
   if {$textlen > 69} {
     # TODO: Generate a warning
   }
   set underlineCh "="
 
-  Item info $text
-  Item info [string repeat $underlineCh $textlen]
-  Item info ""
+  # TODO: check if there is a blank line before in menu and put one if not
+  set menu [::gophser::menu::info $menu $text]
+  set menu [::gophser::menu::info $menu [string repeat $underlineCh $textlen]]
+  set menu [::gophser::menu::info $menu ""]
+  return $menu
 }
 
 
+# TODO: Add support for this, perhaps in items
 proc gophser::gophermap::H3 {text} {
   set textlen [string length $text]
   if {$textlen > 69} {
@@ -124,30 +163,18 @@ proc gophser::gophermap::H3 {text} {
 }
 
 
-proc gophser::gophermap::Info {text} {
-  variable menu
-  set menu [::gophser::menu::info $menu $text]
-}
-
-
 # Display the files in the current directory
 # TODO: be able to specify a glob pattern?
-proc gophser::gophermap::Dir {localDir selectorMountPath selectorSubPath} {
-  variable menu
-  variable descriptions
-  set menu [::gophser::ListDir -descriptions $descriptions \
-                               $menu $localDir \
-                               $selectorMountPath [string trimleft $selectorSubPath "/"]]
+proc gophser::gophermap::Dir {menu descriptions localDir selectorMountPath selectorSubPath} {
+  return [::gophser::ListDir -descriptions $descriptions \
+                             $menu $localDir \
+                             $selectorMountPath [string trimleft $selectorSubPath "/"]]
 }
 
 
-# TODO: Test this and check this is the form we would like to use in a gophermap
-# TODO: Should probably turn the args into vars before passing to maintain interface
-proc gophser::gophermap::Log {command args} {
-  gophser::log $command {*}$args
-}
 
-
+# TODO: Add support for this, perhaps in items
+# TODO: Or support a urls entry with an option description
 proc gophser::gophermap::Url {username url } {
   variable menu
   set menu [::gophser::menu::url $menu $username $url]
