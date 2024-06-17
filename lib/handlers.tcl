@@ -38,8 +38,7 @@ proc gophser::ServePath {request localDir selectorMountPath} {
 
   if {[file isfile $path]} {
     # TODO: Don't allow gophermap to be downloaded
-    # TODO: Support caching when file isn't too big?
-    return [dict create type text value [ReadFile $path]]
+    return [MakeFileResponse $path]
   } elseif {[file isdirectory $path]} {
     # TODO: Should this be moved above?
     set menuText [cache fetch cache $selector]

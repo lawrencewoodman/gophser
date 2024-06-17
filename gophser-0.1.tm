@@ -427,23 +427,13 @@ proc gophser::SafeGets {channelId maxSize varname} {
 }
 
 
-# TODO: Be careful file isn't too big and reduce transmission rate if big and under heavy load
-# TODO: Catch errors
-proc gophser::ReadFile {filename} {
-  # TODO: put filename handling code into a separate function
-  set filename [string trimleft $filename "."]
-  set nativeFilename [file normalize $filename]
-  set fd [open $nativeFilename {RDONLY BINARY}]
-  set data [read $fd]
-  close $fd
-  return $data
-}
-
-
 # To be called by writable event to send a response if present when sock is
 # writable.
 # This will break the response values into 10k chunks to help if we have
 # multiple slow connections.
+# TOOD: Should repsonse include a selector for better error reporting?
+# TODO: Clean up responses periodically incase socks have been closed before
+# TODO: responses could be sent, would need to close fd in case of file first
 proc gophser::SendResponseWhenWritable {sock} {
   variable responses
   if {![dict exists $responses $sock]} {
@@ -452,10 +442,10 @@ proc gophser::SendResponseWhenWritable {sock} {
   set response [dict get $responses $sock]
   # TODO: better name than value?
   set type [dict get $response type]
-  set value [dict get $response value]
 
   switch $type {
     error {
+      set value [dict get $response value]
       # TODO: Add CRLF on end?
       set value "3$value\tFAKE\t(NULL)\t0"
       try {
@@ -469,10 +459,7 @@ proc gophser::SendResponseWhenWritable {sock} {
       return
     }
     text {
-      # TODO: find a way of loading and sending parts of files
-#      set str [string range $value 0 10000]
-#      set value [string range $value 10001 end]
-
+      set value [dict get $response value]
       try {
         puts -nonewline $sock $value
       } on error err {
@@ -484,10 +471,46 @@ proc gophser::SendResponseWhenWritable {sock} {
       # TODO: catch error and log if present
       catch {close $sock}
     }
+    file {
+      set status [dict get $response status]
+      if {$status eq "ready"} {
+        # TODO: put filename handling code into a separate function
+        # TODO: catch and handle any errors from this
+        # TODO: test errors, do we need to include path, should we include selector?
+        set path [dict get $response path]
+        set path [string trimleft $path "."]
+        set path [file normalize $path]
+        dict set responses $sock status open
+        dict set responses $sock fd [open $path {RDONLY BINARY}]
+      }
+
+      # Send files in 1000 byte chunks
+      set fd [dict get $responses $sock fd]
+      set value [read $fd 1000]
+
+      if {$value eq {}} {
+        catch {close $fd}
+        dict unset responses $sock
+        # TODO: catch error and log if present
+        catch {close $sock}
+      } else {
+        try {
+          puts -nonewline $sock $value
+        } on error err {
+          # TODO: handle error differently
+          puts stderr "Error writing to socket: $err"
+        }
+      }
+    }
     default {
       error "unknown type: $type"
     }
   }
+}
+
+
+proc gophser::MakeFileResponse {path} {
+  return [dict create type file path $path status ready]
 }
 
 
@@ -538,8 +561,7 @@ proc gophser::ServePath {request localDir selectorMountPath} {
 
   if {[file isfile $path]} {
     # TODO: Don't allow gophermap to be downloaded
-    # TODO: Support caching when file isn't too big?
-    return [dict create type text value [ReadFile $path]]
+    return [MakeFileResponse $path]
   } elseif {[file isdirectory $path]} {
     # TODO: Should this be moved above?
     set menuText [cache fetch cache $selector]
